@@ -2,7 +2,7 @@
 // شات عربي - Arabic Chat
 // الكود الرئيسي - main.js
 // ==========================================
-
+import './style.css';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getAuth,
