@@ -1,7 +1,26 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+// ==========================================
+// شات عربي - Arabic Chat
+// الكود الرئيسي - main.js
+// ==========================================
 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendEmailVerification,
+  onAuthStateChanged,
+  signOut,
+  signInAnonymously,
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  getDatabase,
+  ref,
+  set,
+  get,
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ===== إعدادات Firebase =====
 const firebaseConfig = {
   apiKey: "AIzaSyAoQ9HP0KVyR12zjEMEEEpUIWD1SzMrcFc",
   authDomain: "chat-19f62.firebaseapp.com",
@@ -16,107 +35,371 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-let currentUser = null;
 const appDiv = document.getElementById("app");
 
-function renderLoginScreen() {
+// ==========================================
+// الشاشة الرئيسية
+// ==========================================
+function renderWelcomeScreen() {
   appDiv.innerHTML = `
-    <div class="screen login-screen">
-      <div class="logo">💬</div>
-      <h1>شات عربي</h1>
-      <p class="subtitle">تعرّف على عرب جدد من حول العالم</p>
-      <button id="guestBtn" class="btn btn-primary">🎭 الدخول كضيف</button>
-      <button id="emailBtn" class="btn btn-secondary">📧 تسجيل بحساب</button>
-      <p class="footer-note">بالدخول أنت توافق على قواعد الاستخدام</p>
+    <div class="screen welcome-screen">
+      <div class="top-bar">
+        <div class="brand">
+          <span class="brand-icon">💬</span>
+          <span>ARABI chat</span>
+        </div>
+        <button class="android-badge">📱 أندرويد</button>
+      </div>
+
+      <div class="hero">
+        <h1>شات عربي</h1>
+        <p>دردشة عربية للتعارف مع أصدقاء من جميع دول الوطن العربي في محادثات جماعية وخاصة</p>
+      </div>
+
+      <div class="buttons-group">
+        <button class="btn btn-google" id="googleBtn">
+          <span class="btn-icon">🔵</span>
+          <span>الدخول بواسطة جوجل</span>
+        </button>
+
+        <button class="btn btn-guest" id="guestBtn">
+          <span class="btn-icon">👤</span>
+          <span>دخول كضيف</span>
+        </button>
+
+        <button class="btn btn-members" id="membersBtn">
+          <span class="btn-icon">👥</span>
+          <span>دخول الأعضاء</span>
+        </button>
+      </div>
+
+      <div class="terms">
+        باستخدامك التطبيق أنت توافق على شروط الاستخدام
+      </div>
     </div>
   `;
-  document.getElementById("guestBtn").onclick = guestLogin;
-  document.getElementById("emailBtn").onclick = () => alert("قريبًا");
+
+  document.getElementById("googleBtn").onclick = () =>
+    alert("جوجل - سنضيفها لاحقًا");
+  document.getElementById("guestBtn").onclick = openGuestModal;
+  document.getElementById("membersBtn").onclick = openMembersModal;
 }
 
-function renderLoadingScreen() {
-  appDiv.innerHTML = `<div class="screen loading-screen"><div class="spinner"></div><p>جاري التحميل...</p></div>`;
-}
+// ==========================================
+// نافذة دخول الأعضاء
+// ==========================================
+function openMembersModal() {
+  const modal = document.createElement("div");
+  modal.className = "modal-overlay";
+  modal.id = "membersModal";
+  modal.innerHTML = `
+    <div class="modal">
+      <button class="modal-close" id="closeMembers">✕</button>
+      <h2>دخول الأعضاء</h2>
 
-function renderChatScreen() {
-  appDiv.innerHTML = `
-    <div class="screen chat-screen">
-      <header class="chat-header">
-        <h2>غرفة الأردن 🇯🇴</h2>
-        <button id="logoutBtn" class="logout-btn">خروج</button>
-      </header>
-      <div id="messages" class="messages-container"></div>
-      <form id="messageForm" class="message-form">
-        <input id="messageInput" type="text" placeholder="اكتب رسالتك..." autocomplete="off"/>
-        <button type="submit" class="send-btn">➤</button>
-      </form>
+      <div class="field">
+        <label>اسم المستخدم</label>
+        <input type="text" id="loginUsername" placeholder="أدخل اسم المستخدم" />
+      </div>
+
+      <div class="field">
+        <label>كلمة المرور</label>
+        <input type="password" id="loginPassword" placeholder="أدخل كلمة المرور" />
+      </div>
+
+      <button class="btn-action" id="loginBtn">🚪 دخول</button>
+
+      <a class="link-text" id="forgotLink">نسيت كلمة المرور؟</a>
+      <a class="link-text" id="goToRegister">
+        ليس لديك حساب؟ <strong>إنشاء حساب</strong>
+      </a>
     </div>
   `;
-  setupChat();
+
+  document.body.appendChild(modal);
+
+  document.getElementById("closeMembers").onclick = () =>
+    modal.remove();
+  document.getElementById("forgotLink").onclick = () =>
+    alert("قريبًا: استعادة كلمة المرور");
+  document.getElementById("goToRegister").onclick = () => {
+    modal.remove();
+    openRegisterModal();
+  };
+  document.getElementById("loginBtn").onclick = handleLogin;
 }
 
-async function guestLogin() {
+// ==========================================
+// نافذة إنشاء حساب
+// ==========================================
+function openRegisterModal() {
+  const modal = document.createElement("div");
+  modal.className = "modal-overlay";
+  modal.id = "registerModal";
+  modal.innerHTML = `
+    <div class="modal">
+      <button class="modal-close" id="closeRegister">✕</button>
+      <h2>إنشاء حساب جديد</h2>
+
+      <div class="field">
+        <label>اسم المستخدم</label>
+        <input type="text" id="regUsername" placeholder="اسمك الذي سيظهر للآخرين" />
+      </div>
+
+      <div class="field">
+        <label>البريد الإلكتروني</label>
+        <input type="email" id="regEmail" placeholder="example@gmail.com" />
+      </div>
+
+      <div class="field">
+        <label>كلمة المرور</label>
+        <input type="password" id="regPassword" placeholder="6 أحرف على الأقل" />
+      </div>
+
+      <div class="alert">
+        ⚠️ تنبيه هام: سيصلك رابط تأكيد على بريدك الإلكتروني. لا يمكنك الدخول قبل التأكيد.
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <div class="field" style="flex:1">
+          <label>الجنس</label>
+          <select id="regGender">
+            <option value="">اختر</option>
+            <option value="male">ذكر</option>
+            <option value="female">أنثى</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1">
+          <label>العمر</label>
+          <select id="regAge">
+            <option value="">اختر</option>
+            ${Array.from({ length: 50 }, (_, i) => i + 15)
+              .map((age) => `<option value="${age}">${age}</option>`)
+              .join("")}
+          </select>
+        </div>
+      </div>
+
+      <button class="btn-action secondary" id="registerBtn">
+        ✨ إنشاء حساب
+      </button>
+
+      <div class="terms">
+        بتسجيلك أنت توافق على شروط الاستخدام
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  document.getElementById("closeRegister").onclick = () =>
+    modal.remove();
+  document.getElementById("registerBtn").onclick = handleRegister;
+}
+
+// ==========================================
+// نافذة دخول كضيف
+// ==========================================
+function openGuestModal() {
+  const modal = document.createElement("div");
+  modal.className = "modal-overlay";
+  modal.id = "guestModal";
+  modal.innerHTML = `
+    <div class="modal">
+      <button class="modal-close" id="closeGuest">✕</button>
+      <h2>دخول كضيف</h2>
+
+      <div class="field">
+        <label>اسم المستخدم</label>
+        <input type="text" id="guestName" placeholder="اختر اسمًا" />
+      </div>
+
+      <div class="field">
+        <label>الجنس</label>
+        <select id="guestGender">
+          <option value="male">ذكر</option>
+          <option value="female">أنثى</option>
+        </select>
+      </div>
+
+      <button class="btn-action" id="enterAsGuest">
+        👤 الدخول الآن
+      </button>
+
+      <div class="terms">
+        كضيف، يمكنك الدردشة الخاصة فقط
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  document.getElementById("closeGuest").onclick = () =>
+    modal.remove();
+  document.getElementById("enterAsGuest").onclick = handleGuestLogin;
+}
+
+// ==========================================
+// معالجة تسجيل الدخول
+// ==========================================
+async function handleLogin() {
+  const username = document.getElementById("loginUsername").value.trim();
+  const password = document.getElementById("loginPassword").value;
+
+  if (!username || !password) {
+    alert("املأ جميع الحقول");
+    return;
+  }
+
   try {
-    renderLoadingScreen();
-    await signInAnonymously(auth);
-  } catch (e) {
-    alert("فشل الدخول: " + e.message);
-    renderLoginScreen();
+    // نستخدم email مخزّن باسم المستخدم لاحقًا
+    // مؤقتًا: نبحث عن البريد عبر Firebase
+    alert("سيتم إضافة هذه الميزة قريبًا مع قاعدة البيانات");
+  } catch (error) {
+    alert("خطأ: " + error.message);
   }
 }
 
-function setupChat() {
-  const messagesDiv = document.getElementById("messages");
-  const form = document.getElementById("messageForm");
-  const input = document.getElementById("messageInput");
-  const messagesRef = ref(db, "rooms/jordan/messages");
+// ==========================================
+// معالجة إنشاء الحساب
+// ==========================================
+async function handleRegister() {
+  const username = document.getElementById("regUsername").value.trim();
+  const email = document.getElementById("regEmail").value.trim();
+  const password = document.getElementById("regPassword").value;
+  const gender = document.getElementById("regGender").value;
+  const age = document.getElementById("regAge").value;
 
-  onValue(messagesRef, (snapshot) => {
-    messagesDiv.innerHTML = "";
-    const data = snapshot.val();
-    if (!data) {
-      messagesDiv.innerHTML = '<p class="empty-msg">لا توجد رسائل بعد. كن أول من يكتب!</p>';
+  // التحقق
+  if (!username || !email || !password || !gender || !age) {
+    alert("املأ جميع الحقول");
+    return;
+  }
+
+  if (username.length < 3) {
+    alert("اسم المستخدم يجب أن يكون 3 أحرف على الأقل");
+    return;
+  }
+
+  if (password.length < 6) {
+    alert("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+    return;
+  }
+
+  try {
+    // 1) التحقق من عدم وجود اسم المستخدم
+    const usernameRef = ref(db, `usernames/${username.toLowerCase()}`);
+    const snapshot = await get(usernameRef);
+    if (snapshot.exists()) {
+      alert("اسم المستخدم محجوز، اختر اسمًا آخر");
       return;
     }
-    Object.values(data)
-      .sort((a, b) => a.createdAt - b.createdAt)
-      .forEach((msg) => {
-        const el = document.createElement("div");
-        el.className = "message";
-        el.innerHTML = `<span class="msg-sender">${msg.username}:</span> <span class="msg-text">${escapeHtml(msg.text)}</span>`;
-        messagesDiv.appendChild(el);
-      });
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  });
 
-  form.onsubmit = async (e) => {
-    e.preventDefault();
-    const text = input.value.trim();
-    if (!text) return;
-    input.value = "";
-    try {
-      await push(messagesRef, {
-        text,
-        senderId: currentUser.uid,
-        username: "ضيف-" + currentUser.uid.slice(0, 4),
-        createdAt: Date.now(),
-      });
-    } catch (e) {
-      alert("فشل الإرسال");
+    // 2) إنشاء الحساب
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+    const user = userCredential.user;
+
+    // 3) إرسال رسالة التأكيد
+    await sendEmailVerification(user);
+
+    // 4) حفظ بيانات المستخدم
+    await set(ref(db, `users/${user.uid}`), {
+      username,
+      email,
+      gender,
+      age: parseInt(age),
+      isGuest: false,
+      emailVerified: false,
+      createdAt: Date.now(),
+    });
+
+    // 5) حجز اسم المستخدم
+    await set(usernameRef, user.uid);
+
+    // 6) إغلاق النافذة
+    document.getElementById("registerModal").remove();
+
+    // 7) إظهار رسالة النجاح
+    showVerificationMessage(email);
+  } catch (error) {
+    console.error(error);
+    if (error.code === "auth/email-already-in-use") {
+      alert("هذا البريد مستخدم بالفعل");
+    } else if (error.code === "auth/invalid-email") {
+      alert("البريد الإلكتروني غير صحيح");
+    } else {
+      alert("خطأ: " + error.message);
     }
-  };
-
-  document.getElementById("logoutBtn").onclick = () => auth.signOut();
+  }
 }
 
-function escapeHtml(t) {
-  const d = document.createElement("div");
-  d.textContent = t;
-  return d.innerHTML;
+// ==========================================
+// معالجة دخول الضيف
+// ==========================================
+async function handleGuestLogin() {
+  const username = document.getElementById("guestName").value.trim();
+  const gender = document.getElementById("guestGender").value;
+
+  if (!username) {
+    alert("اكتب اسمك");
+    return;
+  }
+
+  try {
+    const userCredential = await signInAnonymously(auth);
+    const user = userCredential.user;
+
+    // حفظ بيانات الضيف
+    await set(ref(db, `users/${user.uid}`), {
+      username,
+      gender,
+      isGuest: true,
+      createdAt: Date.now(),
+    });
+
+    // إغلاق النافذة
+    document.getElementById("guestModal").remove();
+  } catch (error) {
+    console.error(error);
+    alert("فشل الدخول: " + error.message);
+  }
 }
 
+// ==========================================
+// شاشة رسالة التأكيد
+// ==========================================
+function showVerificationMessage(email) {
+  appDiv.innerHTML = `
+    <div class="screen welcome-screen">
+      <div class="success-screen">
+        <div class="success-icon">📧</div>
+        <h2>تم إنشاء حسابك!</h2>
+        <p>
+          أرسلنا رابط تأكيد إلى بريدك الإلكتروني:<br>
+          <strong style="color:#a5b4fc">${email}</strong>
+          <br><br>
+          افتح بريدك واضغط على الرابط لتفعيل حسابك، ثم عد وسجّل الدخول.
+        </p>
+        <button class="btn btn-members" onclick="location.reload()">
+          🔄 العودة للرئيسية
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// ==========================================
+// مراقبة حالة المستخدم
+// ==========================================
 onAuthStateChanged(auth, (user) => {
-  currentUser = user;
-  if (user) renderChatScreen();
-  else renderLoginScreen();
+  if (user) {
+    // إذا كان مسجلًا، ننتقل للدردشة لاحقًا
+    console.log("المستخدم:", user.uid, "ضيف:", user.isAnonymous);
+  } else {
+    renderWelcomeScreen();
+  }
 });
