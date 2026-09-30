@@ -1,8 +1,10 @@
 // ==========================================
 // شات عربي - Arabic Chat
-// الكود الرئيسي - main.js
+// الملف الرئيسي - main.js
 // ==========================================
+
 import './style.css';
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getAuth,
@@ -118,8 +120,7 @@ function openMembersModal() {
 
   document.body.appendChild(modal);
 
-  document.getElementById("closeMembers").onclick = () =>
-    modal.remove();
+  document.getElementById("closeMembers").onclick = () => modal.remove();
   document.getElementById("forgotLink").onclick = () =>
     alert("قريبًا: استعادة كلمة المرور");
   document.getElementById("goToRegister").onclick = () => {
@@ -173,9 +174,6 @@ function openRegisterModal() {
           <label>العمر</label>
           <select id="regAge">
             <option value="">اختر</option>
-            ${Array.from({ length: 50 }, (_, i) => i + 15)
-              .map((age) => `<option value="${age}">${age}</option>`)
-              .join("")}
           </select>
         </div>
       </div>
@@ -192,8 +190,16 @@ function openRegisterModal() {
 
   document.body.appendChild(modal);
 
-  document.getElementById("closeRegister").onclick = () =>
-    modal.remove();
+  // املأ قائمة الأعمار
+  const ageSelect = document.getElementById("regAge");
+  for (let i = 15; i <= 70; i++) {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = i;
+    ageSelect.appendChild(opt);
+  }
+
+  document.getElementById("closeRegister").onclick = () => modal.remove();
   document.getElementById("registerBtn").onclick = handleRegister;
 }
 
@@ -234,8 +240,7 @@ function openGuestModal() {
 
   document.body.appendChild(modal);
 
-  document.getElementById("closeGuest").onclick = () =>
-    modal.remove();
+  document.getElementById("closeGuest").onclick = () => modal.remove();
   document.getElementById("enterAsGuest").onclick = handleGuestLogin;
 }
 
@@ -252,11 +257,41 @@ async function handleLogin() {
   }
 
   try {
-    // نستخدم email مخزّن باسم المستخدم لاحقًا
-    // مؤقتًا: نبحث عن البريد عبر Firebase
-    alert("سيتم إضافة هذه الميزة قريبًا مع قاعدة البيانات");
+    const usernameRef = ref(db, `usernames/${username.toLowerCase()}`);
+    const snapshot = await get(usernameRef);
+
+    if (!snapshot.exists()) {
+      alert("اسم المستخدم غير موجود");
+      return;
+    }
+
+    const userData = snapshot.val();
+    const email = userData.email;
+
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+    const user = userCredential.user;
+
+    if (!user.emailVerified) {
+      alert("يجب تأكيد بريدك الإلكتروني أولًا");
+      await signOut(auth);
+      return;
+    }
+
+    document.getElementById("membersModal").remove();
   } catch (error) {
-    alert("خطأ: " + error.message);
+    console.error(error);
+    if (
+      error.code === "auth/wrong-password" ||
+      error.code === "auth/invalid-credential"
+    ) {
+      alert("كلمة المرور غير صحيحة");
+    } else {
+      alert("خطأ: " + error.message);
+    }
   }
 }
 
@@ -270,7 +305,6 @@ async function handleRegister() {
   const gender = document.getElementById("regGender").value;
   const age = document.getElementById("regAge").value;
 
-  // التحقق
   if (!username || !email || !password || !gender || !age) {
     alert("املأ جميع الحقول");
     return;
@@ -287,7 +321,6 @@ async function handleRegister() {
   }
 
   try {
-    // 1) التحقق من عدم وجود اسم المستخدم
     const usernameRef = ref(db, `usernames/${username.toLowerCase()}`);
     const snapshot = await get(usernameRef);
     if (snapshot.exists()) {
@@ -295,7 +328,6 @@ async function handleRegister() {
       return;
     }
 
-    // 2) إنشاء الحساب
     const userCredential = await createUserWithEmailAndPassword(
       auth,
       email,
@@ -303,10 +335,8 @@ async function handleRegister() {
     );
     const user = userCredential.user;
 
-    // 3) إرسال رسالة التأكيد
     await sendEmailVerification(user);
 
-    // 4) حفظ بيانات المستخدم
     await set(ref(db, `users/${user.uid}`), {
       username,
       email,
@@ -317,13 +347,15 @@ async function handleRegister() {
       createdAt: Date.now(),
     });
 
-    // 5) حجز اسم المستخدم
-    await set(usernameRef, user.uid);
+    await set(usernameRef, {
+      email: email,
+      uid: user.uid,
+    });
 
-    // 6) إغلاق النافذة
     document.getElementById("registerModal").remove();
 
-    // 7) إظهار رسالة النجاح
+    await signOut(auth);
+
     showVerificationMessage(email);
   } catch (error) {
     console.error(error);
@@ -353,7 +385,6 @@ async function handleGuestLogin() {
     const userCredential = await signInAnonymously(auth);
     const user = userCredential.user;
 
-    // حفظ بيانات الضيف
     await set(ref(db, `users/${user.uid}`), {
       username,
       gender,
@@ -361,7 +392,6 @@ async function handleGuestLogin() {
       createdAt: Date.now(),
     });
 
-    // إغلاق النافذة
     document.getElementById("guestModal").remove();
   } catch (error) {
     console.error(error);
@@ -393,12 +423,44 @@ function showVerificationMessage(email) {
 }
 
 // ==========================================
+// شاشة الدردشة
+// ==========================================
+function renderChatScreen(user) {
+  appDiv.innerHTML = `
+    <div class="screen chat-screen">
+      <header class="chat-header">
+        <h2>غرفة الأردن 🇯🇴</h2>
+        <button id="logoutBtn" class="logout-btn">خروج</button>
+      </header>
+
+      <div id="messages" class="messages-container">
+        <p class="empty-msg">مرحبًا بك! ابدأ الدردشة</p>
+      </div>
+
+      <form id="messageForm" class="message-form">
+        <input id="messageInput" type="text" placeholder="اكتب رسالتك..." autocomplete="off"/>
+        <button type="submit" class="send-btn">➤</button>
+      </form>
+    </div>
+  `;
+
+  document.getElementById("logoutBtn").onclick = () => {
+    signOut(auth);
+  };
+
+  document.getElementById("messageForm").onsubmit = (e) => {
+    e.preventDefault();
+    alert("سيتم تفعيل الدردشة قريبًا");
+  };
+}
+
+// ==========================================
 // مراقبة حالة المستخدم
 // ==========================================
 onAuthStateChanged(auth, (user) => {
   if (user) {
-    // إذا كان مسجلًا، ننتقل للدردشة لاحقًا
     console.log("المستخدم:", user.uid, "ضيف:", user.isAnonymous);
+    renderChatScreen(user);
   } else {
     renderWelcomeScreen();
   }
