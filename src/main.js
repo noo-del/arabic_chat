@@ -46,12 +46,12 @@ const appDiv = document.getElementById("app");
 // ==========================================
 function getRoleInfo(role) {
   const roles = {
-    owner: { label: "صاحب الموقع", color: "#fbbf24", order: 1 },
-    super_admin: { label: "SUPER ADMIN", color: "#ef4444", order: 2 },
-    admin: { label: "ADMIN", color: "#8b5cf6", order: 3 },
-    premium: { label: "PREMIUM", color: "#06b6d4", order: 4 },
-    member: { label: "عضو", color: "#a5b4fc", order: 5 },
-    guest: { label: "زائر", color: "#94a3b8", order: 6 },
+    owner: { label: "صاحب الموقع", color: "#fbbf24" },
+    super_admin: { label: "SUPER ADMIN", color: "#ef4444" },
+    admin: { label: "ADMIN", color: "#8b5cf6" },
+    premium: { label: "PREMIUM", color: "#06b6d4" },
+    member: { label: "عضو", color: "#a5b4fc" },
+    guest: { label: "زائر", color: "#94a3b8" },
   };
   return roles[role] || roles.member;
 }
@@ -462,24 +462,67 @@ function renderRoomsScreen(user, userData) {
   const roleInfo = getRoleInfo(userData.role);
 
   appDiv.innerHTML = `
-    <div class="screen chat-screen">
-      <header class="chat-header">
-        <h2>الغرف</h2>
-        <button id="logoutBtn" class="logout-btn">خروج</button>
+    <div class="screen rooms-screen">
+      <header class="rooms-header">
+        <div class="rooms-top">
+          <button class="top-icon-btn" title="القائمة">☰</button>
+          <span class="rooms-title">ARABI chat</span>
+          <button class="top-icon-btn" id="logoutBtn" title="خروج">⎋</button>
+        </div>
+
+        <div class="rooms-tabs">
+          <button class="tab-btn active">
+            <span class="tab-icon">👥</span>
+            <span class="tab-label">الغرف</span>
+          </button>
+          <button class="tab-btn">
+            <span class="tab-icon">⭐</span>
+            <span class="tab-label">الكبار</span>
+          </button>
+          <button class="tab-btn">
+            <span class="tab-icon">🎁</span>
+            <span class="tab-label">الهدايا</span>
+          </button>
+          <button class="tab-btn">
+            <span class="tab-icon">💌</span>
+            <span class="tab-label">رسائل</span>
+          </button>
+          <button class="tab-btn">
+            <span class="tab-icon">⚙️</span>
+            <span class="tab-label">إعدادات</span>
+          </button>
+        </div>
       </header>
 
-      <div id="rooms-list" class="messages-container">
+      <div id="rooms-list" class="rooms-list">
         <p class="empty-msg">جاري التحميل...</p>
       </div>
 
       ${isOwner ? `
-        <button id="addRoomBtn" class="send-btn" style="position:fixed;bottom:80px;left:20px;width:60px;height:60px;font-size:28px;z-index:10;">+</button>
+        <button id="addRoomBtn" class="add-room-btn">+</button>
       ` : ''}
 
-      <div class="message-form" style="justify-content:center;">
-        <span style="color:${roleInfo.color};font-weight:700;">
-          ${roleInfo.label} ${userData.username}
-        </span>
+      <div class="rooms-bottom">
+        <button class="bottom-btn">
+          <span class="bottom-icon">▶️</span>
+          <span class="bottom-label">Radio</span>
+        </button>
+        <button class="bottom-btn active">
+          <span class="bottom-icon">🏠</span>
+          <span class="bottom-label">الغرف</span>
+        </button>
+        <button class="bottom-btn">
+          <span class="bottom-icon">👥</span>
+          <span class="bottom-label">المتصلين</span>
+        </button>
+        <button class="bottom-btn">
+          <span class="bottom-icon">⚙️</span>
+          <span class="bottom-label">خيارات</span>
+        </button>
+      </div>
+
+      <div style="position:absolute;top:140px;left:15px;font-size:11px;color:${roleInfo.color};font-weight:700;">
+        ${roleInfo.label} • ${userData.username}
       </div>
     </div>
   `;
@@ -498,14 +541,18 @@ function renderRoomsScreen(user, userData) {
     }
 
     Object.entries(data).forEach(([roomId, room]) => {
+      const memberCount = room.membersCount || 0;
       const roomEl = document.createElement("div");
-      roomEl.className = "room-card";
+      roomEl.className = "room-item";
       roomEl.innerHTML = `
-        <div class="room-info">
-          <span class="room-flag">${room.flag || "💬"}</span>
-          <span class="room-name">${escapeHtml(room.name || roomId)}</span>
+        <div class="room-left">
+          <span class="room-flag-big">${room.flag || "💬"}</span>
+          <div class="room-details">
+            <span class="room-title-name">غرفة || ${escapeHtml(room.name || roomId)}</span>
+            <span class="room-count">👥 ${memberCount}</span>
+          </div>
         </div>
-        <button class="room-enter-btn" data-room="${roomId}">دخول</button>
+        <button class="room-enter-btn" data-room="${roomId}">← دخول الغرفة</button>
         ${isOwner ? `<button class="room-delete-btn" data-room="${roomId}">🗑️</button>` : ''}
       `;
       roomsList.appendChild(roomEl);
@@ -549,7 +596,7 @@ function openAddRoomModal() {
 
       <div class="field">
         <label>اسم الغرفة</label>
-        <input type="text" id="roomName" placeholder="مثال: غرفة الاردن" />
+        <input type="text" id="roomName" placeholder="مثال: الاردن" />
       </div>
 
       <div class="field">
@@ -584,6 +631,7 @@ function openAddRoomModal() {
       await set(ref(db, `rooms/${id}`), {
         name: name,
         flag: flag || "💬",
+        membersCount: 0,
         createdAt: Date.now(),
       });
       modal.remove();
@@ -594,29 +642,54 @@ function openAddRoomModal() {
 }
 
 // ==========================================
-// شاشة الدردشة
+// شاشة الدردشة (داخل الغرفة)
 // ==========================================
 function renderChatScreen(user, userData, roomId = "jordan") {
   appDiv.innerHTML = `
-    <div class="screen chat-screen">
-      <header class="chat-header">
-        <button id="backBtn" class="logout-btn">← رجوع</button>
-        <h2 id="roomTitle">جاري التحميل...</h2>
-        <button id="logoutBtn" class="logout-btn">خروج</button>
+    <div class="screen chat-room-screen">
+      <header class="room-top-bar">
+        <button class="top-icon-btn" id="menuBtn">☰</button>
+        <span class="room-top-title" id="roomTitle">جاري التحميل...</span>
+        <div class="room-top-actions">
+          <button class="top-icon-btn" title="الكبار">👑</button>
+          <button class="top-icon-btn" title="الهدايا">🎁</button>
+          <button class="top-icon-btn" title="الإشعارات">🔔</button>
+          <button class="top-icon-btn" id="backBtn" title="رجوع">←</button>
+        </div>
       </header>
 
-      <div id="messages" class="messages-container">
-        <p class="empty-msg">جاري التحميل...</p>
-      </div>
+      <div id="messages" class="room-messages"></div>
 
-      <form id="messageForm" class="message-form">
-        <input id="messageInput" type="text" placeholder="اكتب رسالتك..." autocomplete="off"/>
-        <button type="submit" class="send-btn">➤</button>
+      <form id="messageForm" class="room-input-bar">
+        <button type="button" class="input-action-btn" id="plusBtn">＋</button>
+        <div class="input-wrapper">
+          <input id="messageInput" type="text" placeholder="اكتب هنا..." autocomplete="off"/>
+          <button type="button" class="emoji-btn">😊</button>
+        </div>
+        <button type="submit" class="send-circle-btn">➤</button>
       </form>
+
+      <div class="room-bottom-nav">
+        <button class="nav-item">
+          <span class="nav-icon">▶️</span>
+          <span class="nav-text">Radio</span>
+        </button>
+        <button class="nav-item active">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-text">الغرف</span>
+        </button>
+        <button class="nav-item">
+          <span class="nav-icon">👥</span>
+          <span class="nav-text">المتصلين</span>
+        </button>
+        <button class="nav-item">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-text">خيارات</span>
+        </button>
+      </div>
     </div>
   `;
 
-  document.getElementById("logoutBtn").onclick = () => signOut(auth);
   document.getElementById("backBtn").onclick = () =>
     renderRoomsScreen(user, userData);
 
@@ -624,9 +697,7 @@ function renderChatScreen(user, userData, roomId = "jordan") {
     if (snap.exists()) {
       const room = snap.val();
       document.getElementById("roomTitle").textContent =
-        `${room.flag || "💬"} ${room.name}`;
-    } else {
-      document.getElementById("roomTitle").textContent = roomId;
+        `غرفة ${room.name}`;
     }
   });
 
@@ -648,7 +719,11 @@ function startChat(user, userData, roomId = "jordan") {
     const data = snapshot.val();
 
     if (!data) {
-      messagesDiv.innerHTML = '<p class="empty-msg">لا توجد رسائل بعد. كن أول من يكتب!</p>';
+      messagesDiv.innerHTML = `
+        <div class="system-message">
+          💬 مرحبًا بك في الغرفة! كن أول من يكتب
+        </div>
+      `;
       return;
     }
 
@@ -661,13 +736,19 @@ function startChat(user, userData, roomId = "jordan") {
       const roleInfo = getRoleInfo(msg.senderRole || "member");
 
       const msgEl = document.createElement("div");
-      msgEl.className = isMine ? "message mine" : "message";
+      msgEl.className = "chat-msg";
       msgEl.innerHTML = `
-        <div class="msg-header">
-          <span class="msg-role" style="color:${roleInfo.color}">${roleInfo.label}</span>
-          <span class="msg-sender" style="color:${msg.senderColor || '#a5b4fc'}">${escapeHtml(msg.senderName)}</span>
+        <div class="chat-avatar" style="background:${msg.senderColor || '#a5b4fc'}20;border:2px solid ${msg.senderColor || '#a5b4fc'};">
+          ${(msg.senderName || "?")[0]}
         </div>
-        <div class="msg-text">${escapeHtml(msg.text)}</div>
+        <div class="chat-msg-body">
+          <div class="chat-msg-header">
+            <span class="chat-role" style="color:${roleInfo.color}">${roleInfo.label}</span>
+            <span class="chat-name" style="color:${msg.senderColor || '#a5b4fc'}">${escapeHtml(msg.senderName)}</span>
+            <span class="chat-time">${formatTime(msg.createdAt)}</span>
+          </div>
+          <div class="chat-text">${escapeHtml(msg.text)}</div>
+        </div>
       `;
       messagesDiv.appendChild(msgEl);
     });
@@ -697,6 +778,17 @@ function startChat(user, userData, roomId = "jordan") {
       alert("فشل الإرسال: " + error.message);
     }
   };
+}
+
+// ==========================================
+// تنسيق الوقت
+// ==========================================
+function formatTime(timestamp) {
+  if (!timestamp) return "";
+  const date = new Date(timestamp);
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  return `${hours}:${minutes}`;
 }
 
 // ==========================================
