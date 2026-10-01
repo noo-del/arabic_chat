@@ -45,6 +45,11 @@ const appDiv = document.getElementById("app");
 const CLOUDINARY_CLOUD_NAME = "zzswviqu";
 const CLOUDINARY_UPLOAD_PRESET = "chat_uploads";
 
+// ===== متغيرات عامة =====
+let currentUser = null;
+let currentUserData = null;
+let lastRenderedScreen = null;
+
 // ==========================================
 // نظام الرتب
 // ==========================================
@@ -64,6 +69,7 @@ function getRoleInfo(role) {
 // الشاشة الرئيسية
 // ==========================================
 function renderWelcomeScreen() {
+  lastRenderedScreen = "welcome";
   appDiv.innerHTML = `
     <div class="screen welcome-screen">
       <div class="top-bar">
@@ -439,6 +445,7 @@ async function handleGuestLogin() {
 // شاشة رسالة التأكيد
 // ==========================================
 function showVerificationMessage(email) {
+  lastRenderedScreen = "verify";
   appDiv.innerHTML = `
     <div class="screen welcome-screen">
       <div class="success-screen">
@@ -462,6 +469,7 @@ function showVerificationMessage(email) {
 // شاشة قائمة الغرف
 // ==========================================
 function renderRoomsScreen(user, userData) {
+  lastRenderedScreen = "rooms";
   const isOwner = userData.role === "owner";
   const roleInfo = getRoleInfo(userData.role);
 
@@ -543,6 +551,7 @@ function renderRoomsScreen(user, userData) {
   const roomsRef = ref(db, "rooms");
   onValue(roomsRef, (snapshot) => {
     const roomsList = document.getElementById("rooms-list");
+    if (!roomsList) return;
     roomsList.innerHTML = "";
 
     const data = snapshot.val();
@@ -694,6 +703,7 @@ function openSideMenu(user, userData) {
 // لوحة التحكم (لصاحب الموقع)
 // ==========================================
 function renderAdminPanel(ownerUser, ownerData) {
+  lastRenderedScreen = "admin";
   appDiv.innerHTML = `
     <div class="screen admin-screen">
       <header class="admin-header">
@@ -746,10 +756,14 @@ function renderAdminPanel(ownerUser, ownerData) {
 // ==========================================
 function loadAdminUsers(ownerUser, ownerData) {
   const content = document.getElementById("admin-content");
+  if (!content) return;
   content.innerHTML = '<p class="empty-msg">جاري التحميل...</p>';
 
   const usersRef = ref(db, "users");
   onValue(usersRef, (snapshot) => {
+    const content = document.getElementById("admin-content");
+    if (!content) return;
+
     const data = snapshot.val();
     if (!data) {
       content.innerHTML = '<p class="empty-msg">لا يوجد أعضاء بعد</p>';
@@ -768,6 +782,7 @@ function loadAdminUsers(ownerUser, ownerData) {
 
     const renderList = (filter = "") => {
       const list = document.getElementById("users-list");
+      if (!list) return;
       list.innerHTML = "";
 
       const filtered = users.filter((u) =>
@@ -889,10 +904,14 @@ function openRoleChangeModal(targetUid, currentRole, ownerUser, ownerData) {
 // ==========================================
 function loadAdminRooms(ownerUser, ownerData) {
   const content = document.getElementById("admin-content");
+  if (!content) return;
   content.innerHTML = '<p class="empty-msg">جاري التحميل...</p>';
 
   const roomsRef = ref(db, "rooms");
   onValue(roomsRef, (snapshot) => {
+    const content = document.getElementById("admin-content");
+    if (!content) return;
+
     const data = snapshot.val();
     content.innerHTML = `
       <button class="btn-action" id="adminAddRoomBtn">➕ إضافة غرفة جديدة</button>
@@ -904,6 +923,7 @@ function loadAdminRooms(ownerUser, ownerData) {
     };
 
     const list = document.getElementById("admin-rooms-list");
+    if (!list) return;
 
     if (!data) {
       list.innerHTML = '<p class="empty-msg">لا توجد غرف</p>';
@@ -942,12 +962,16 @@ function loadAdminRooms(ownerUser, ownerData) {
 // ==========================================
 function loadAdminStats(ownerUser, ownerData) {
   const content = document.getElementById("admin-content");
+  if (!content) return;
   content.innerHTML = '<p class="empty-msg">جاري التحميل...</p>';
 
   Promise.all([
     get(ref(db, "users")),
     get(ref(db, "rooms")),
   ]).then(([usersSnap, roomsSnap]) => {
+    const content = document.getElementById("admin-content");
+    if (!content) return;
+
     const users = usersSnap.val() || {};
     const rooms = roomsSnap.val() || {};
 
@@ -1056,6 +1080,7 @@ function openAddRoomModal() {
 // شاشة الدردشة (داخل الغرفة)
 // ==========================================
 function renderChatScreen(user, userData, roomId = "jordan") {
+  lastRenderedScreen = "chat";
   appDiv.innerHTML = `
     <div class="screen chat-room-screen">
       <header class="room-top-bar">
@@ -1113,8 +1138,8 @@ function renderChatScreen(user, userData, roomId = "jordan") {
   get(ref(db, `rooms/${roomId}`)).then((snap) => {
     if (snap.exists()) {
       const room = snap.val();
-      document.getElementById("roomTitle").textContent =
-        `غرفة ${room.name}`;
+      const title = document.getElementById("roomTitle");
+      if (title) title.textContent = `غرفة ${room.name}`;
     }
   });
 
@@ -1128,6 +1153,8 @@ function startChat(user, userData, roomId = "jordan") {
   const messagesDiv = document.getElementById("messages");
   const form = document.getElementById("messageForm");
   const input = document.getElementById("messageInput");
+
+  if (!messagesDiv || !form || !input) return;
 
   const messagesRef = ref(db, `rooms/${roomId}/messages`);
 
@@ -1599,18 +1626,24 @@ function escapeHtml(text) {
 // ==========================================
 onAuthStateChanged(auth, (user) => {
   if (user) {
+    currentUser = user;
     const userRef = ref(db, `users/${user.uid}`);
     onValue(userRef, (snapshot) => {
       if (snapshot.exists()) {
-        const userData = snapshot.val();
-        if (!document.getElementById("editProfileModal") && !document.getElementById("profileModal")) {
-          renderRoomsScreen(user, userData);
+        currentUserData = snapshot.val();
+        // ⚠️ لا تعيد بناء الشاشة إذا كنا في وسط عملية
+        if (lastRenderedScreen === "admin" || lastRenderedScreen === "chat") return;
+
+        if (!document.getElementById("editProfileModal") && !document.getElementById("profileModal") && !document.getElementById("sideMenuOverlay")) {
+          renderRoomsScreen(user, currentUserData);
         }
       } else {
         renderWelcomeScreen();
       }
     });
   } else {
+    currentUser = null;
+    currentUserData = null;
     renderWelcomeScreen();
   }
 });
