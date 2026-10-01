@@ -539,14 +539,31 @@ function renderRoomsScreen(user, userData) {
     </div>
   `;
 
-  document.getElementById("logoutBtn").onclick = () => signOut(auth);
-  document.getElementById("menuBtn").onclick = () =>
-    openSideMenu(user, userData);
+  const menuBtnEl = document.getElementById("menuBtn");
+  if (menuBtnEl) {
+    menuBtnEl.addEventListener("click", () => {
+      openSideMenu(user, userData);
+    });
+  }
 
-  document.getElementById("myProfileBtn").onclick = () =>
-    showProfile(user.uid, user, userData);
-  document.getElementById("bottomProfileBtn").onclick = () =>
-    showProfile(user.uid, user, userData);
+  const logoutBtnEl = document.getElementById("logoutBtn");
+  if (logoutBtnEl) {
+    logoutBtnEl.addEventListener("click", () => signOut(auth));
+  }
+
+  const myProfileBtnEl = document.getElementById("myProfileBtn");
+  if (myProfileBtnEl) {
+    myProfileBtnEl.addEventListener("click", () => {
+      showProfile(user.uid, user, userData);
+    });
+  }
+
+  const bottomProfileBtnEl = document.getElementById("bottomProfileBtn");
+  if (bottomProfileBtnEl) {
+    bottomProfileBtnEl.addEventListener("click", () => {
+      showProfile(user.uid, user, userData);
+    });
+  }
 
   const roomsRef = ref(db, "rooms");
   onValue(roomsRef, (snapshot) => {
@@ -579,26 +596,29 @@ function renderRoomsScreen(user, userData) {
     });
 
     document.querySelectorAll(".room-enter-btn").forEach((btn) => {
-      btn.onclick = () => {
+      btn.addEventListener("click", () => {
         const roomId = btn.dataset.room;
         renderChatScreen(user, userData, roomId);
-      };
+      });
     });
 
     document.querySelectorAll(".room-delete-btn").forEach((btn) => {
-      btn.onclick = async () => {
+      btn.addEventListener("click", async () => {
         const roomId = btn.dataset.room;
         if (confirm("حذف الغرفة؟")) {
           await set(ref(db, `rooms/${roomId}`), null);
         }
-      };
+      });
     });
   });
 
   if (isOwner) {
-    document.getElementById("addRoomBtn").onclick = () => {
-      openAddRoomModal();
-    };
+    const addRoomBtnEl = document.getElementById("addRoomBtn");
+    if (addRoomBtnEl) {
+      addRoomBtnEl.addEventListener("click", () => {
+        openAddRoomModal();
+      });
+    }
   }
 }
 
@@ -609,6 +629,9 @@ function openSideMenu(user, userData) {
   const isOwner = userData.role === "owner";
   const roleInfo = getRoleInfo(userData.role);
   const avatar = userData.avatar && userData.avatar !== "none" ? userData.avatar : null;
+
+  const existing = document.getElementById("sideMenuOverlay");
+  if (existing) existing.remove();
 
   const menu = document.createElement("div");
   menu.className = "side-menu-overlay";
@@ -669,33 +692,51 @@ function openSideMenu(user, userData) {
     if (e.target === menu) menu.remove();
   };
 
-  document.getElementById("menuMyProfile").onclick = () => {
-    menu.remove();
-    showProfile(user.uid, user, userData);
-  };
+  const menuMyProfileEl = document.getElementById("menuMyProfile");
+  if (menuMyProfileEl) {
+    menuMyProfileEl.onclick = () => {
+      menu.remove();
+      showProfile(user.uid, user, userData);
+    };
+  }
 
-  document.getElementById("menuRooms").onclick = () => menu.remove();
+  const menuRoomsEl = document.getElementById("menuRooms");
+  if (menuRoomsEl) {
+    menuRoomsEl.onclick = () => menu.remove();
+  }
 
-  document.getElementById("menuOnline").onclick = () => {
-    menu.remove();
-    alert("قريبًا: قائمة المتصلين");
-  };
+  const menuOnlineEl = document.getElementById("menuOnline");
+  if (menuOnlineEl) {
+    menuOnlineEl.onclick = () => {
+      menu.remove();
+      alert("قريبًا: قائمة المتصلين");
+    };
+  }
 
-  document.getElementById("menuSettings").onclick = () => {
-    menu.remove();
-    alert("قريبًا: الإعدادات");
-  };
+  const menuSettingsEl = document.getElementById("menuSettings");
+  if (menuSettingsEl) {
+    menuSettingsEl.onclick = () => {
+      menu.remove();
+      alert("قريبًا: الإعدادات");
+    };
+  }
 
-  document.getElementById("menuLogout").onclick = () => {
-    menu.remove();
-    signOut(auth);
-  };
+  const menuLogoutEl = document.getElementById("menuLogout");
+  if (menuLogoutEl) {
+    menuLogoutEl.onclick = () => {
+      menu.remove();
+      signOut(auth);
+    };
+  }
 
   if (isOwner) {
-    document.getElementById("menuAdmin").onclick = () => {
-      menu.remove();
-      renderAdminPanel(user, userData);
-    };
+    const menuAdminEl = document.getElementById("menuAdmin");
+    if (menuAdminEl) {
+      menuAdminEl.onclick = () => {
+        menu.remove();
+        renderAdminPanel(user, userData);
+      };
+    }
   }
 }
 
@@ -1126,14 +1167,26 @@ function renderChatScreen(user, userData, roomId = "jordan") {
     </div>
   `;
 
-  document.getElementById("backBtn").onclick = () =>
-    renderRoomsScreen(user, userData);
+  const backBtnEl = document.getElementById("backBtn");
+  if (backBtnEl) {
+    backBtnEl.addEventListener("click", () => {
+      renderRoomsScreen(user, userData);
+    });
+  }
 
-  document.getElementById("chatMenuBtn").onclick = () =>
-    openSideMenu(user, userData);
+  const chatMenuBtnEl = document.getElementById("chatMenuBtn");
+  if (chatMenuBtnEl) {
+    chatMenuBtnEl.addEventListener("click", () => {
+      openSideMenu(user, userData);
+    });
+  }
 
-  document.getElementById("myProfileRoomBtn").onclick = () =>
-    showProfile(user.uid, user, userData);
+  const myProfileRoomBtnEl = document.getElementById("myProfileRoomBtn");
+  if (myProfileRoomBtnEl) {
+    myProfileRoomBtnEl.addEventListener("click", () => {
+      showProfile(user.uid, user, userData);
+    });
+  }
 
   get(ref(db, `rooms/${roomId}`)).then((snap) => {
     if (snap.exists()) {
@@ -1628,14 +1681,11 @@ onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUser = user;
     const userRef = ref(db, `users/${user.uid}`);
-    onValue(userRef, (snapshot) => {
+
+    get(userRef).then((snapshot) => {
       if (snapshot.exists()) {
         currentUserData = snapshot.val();
-        if (lastRenderedScreen === "admin" || lastRenderedScreen === "chat") return;
-
-        if (!document.getElementById("editProfileModal") && !document.getElementById("profileModal") && !document.getElementById("sideMenuOverlay")) {
-          renderRoomsScreen(user, currentUserData);
-        }
+        renderRoomsScreen(user, currentUserData);
       } else {
         renderWelcomeScreen();
       }
