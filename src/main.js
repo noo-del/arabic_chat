@@ -656,7 +656,6 @@ function openSideMenu(user, userData) {
 
   document.body.appendChild(menu);
 
-  // إغلاق عند الضغط على الخلفية
   menu.onclick = (e) => {
     if (e.target === menu) menu.remove();
   };
@@ -728,7 +727,6 @@ function renderAdminPanel(ownerUser, ownerData) {
     renderRoomsScreen(ownerUser, ownerData);
   document.getElementById("adminLogout").onclick = () => signOut(auth);
 
-  // التبويبات
   document.querySelectorAll(".admin-tab").forEach((tab) => {
     tab.onclick = () => {
       document.querySelectorAll(".admin-tab").forEach((t) => t.classList.remove("active"));
@@ -740,7 +738,6 @@ function renderAdminPanel(ownerUser, ownerData) {
     };
   });
 
-  // الافتراضي: الأعضاء
   loadAdminUsers(ownerUser, ownerData);
 }
 
@@ -813,7 +810,6 @@ function loadAdminUsers(ownerUser, ownerData) {
         list.appendChild(userEl);
       });
 
-      // زر تعديل الرتبة
       document.querySelectorAll(".admin-user-action-btn").forEach((btn) => {
         btn.onclick = () => {
           const uid = btn.dataset.uid;
@@ -1063,7 +1059,7 @@ function renderChatScreen(user, userData, roomId = "jordan") {
   appDiv.innerHTML = `
     <div class="screen chat-room-screen">
       <header class="room-top-bar">
-        <button class="top-icon-btn" id="menuBtn">☰</button>
+        <button class="top-icon-btn" id="chatMenuBtn">☰</button>
         <span class="room-top-title" id="roomTitle">جاري التحميل...</span>
         <div class="room-top-actions">
           <button class="top-icon-btn" title="الكبار">👑</button>
@@ -1108,7 +1104,7 @@ function renderChatScreen(user, userData, roomId = "jordan") {
   document.getElementById("backBtn").onclick = () =>
     renderRoomsScreen(user, userData);
 
-  document.getElementById("menuBtn").onclick = () =>
+  document.getElementById("chatMenuBtn").onclick = () =>
     openSideMenu(user, userData);
 
   document.getElementById("myProfileRoomBtn").onclick = () =>
