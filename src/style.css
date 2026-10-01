@@ -389,8 +389,10 @@ body {
   margin-bottom: 20px;
 }
 
-/* ===== شاشة الدردشة ===== */
-.chat-screen {
+/* ==========================================
+   شاشة قائمة الغرف
+   ========================================== */
+.rooms-screen {
   background: #0a0e27;
   max-width: 600px;
   margin: 0 auto;
@@ -398,207 +400,485 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: hidden;
   z-index: 1;
 }
 
-.chat-header {
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
-  color: #fff;
-  padding: 15px 20px;
+.rooms-header {
+  background: #0f172a;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+  padding: 0;
+}
+
+.rooms-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+  padding: 12px 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.chat-header h2 { font-size: 18px; font-weight: 700; }
+.rooms-title {
+  font-size: 20px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #06b6d4, #3b82f6, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 1px;
+}
 
-.logout-btn {
-  background: rgba(239, 68, 68, 0.2);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  padding: 8px 15px;
-  border-radius: 20px;
-  font-size: 13px;
+.top-icon-btn {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 22px;
   cursor: pointer;
-  font-family: inherit;
+  padding: 5px 10px;
+  border-radius: 8px;
+  transition: background 0.3s;
 }
 
-/* ===== منطقة الرسائل ===== */
-.messages-container {
+.top-icon-btn:active { background: rgba(255, 255, 255, 0.1); }
+
+.rooms-tabs {
+  display: flex;
+  overflow-x: auto;
+  padding: 8px 10px;
+  gap: 5px;
+  scrollbar-width: none;
+}
+
+.rooms-tabs::-webkit-scrollbar { display: none; }
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 8px 14px;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  transition: all 0.3s;
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+}
+
+.tab-icon { font-size: 18px; }
+.tab-label { font-size: 11px; }
+
+.rooms-list {
   flex: 1;
   overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 80px;
+}
+
+/* بطاقة الغرفة */
+.room-item {
+  background: #fff;
+  border-radius: 16px;
   padding: 15px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  position: relative;
 }
 
-.empty-msg {
-  text-align: center;
-  color: rgba(255, 255, 255, 0.4);
-  margin-top: 40px;
+.room-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.room-flag-big {
+  font-size: 32px;
+}
+
+.room-details {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  justify-content: space-between;
+}
+
+.room-title-name {
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.room-count {
+  color: #06b6d4;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.room-enter-btn {
+  background: #0f172a;
+  color: #fff;
+  border: none;
+  padding: 10px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s;
+}
+
+.room-enter-btn::before {
+  content: '←';
+  background: #10b981;
+  color: #fff;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 14px;
 }
 
-.message {
-  background: rgba(255, 255, 255, 0.06);
+.room-delete-btn {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-room-btn {
+  position: fixed;
+  bottom: 90px;
+  left: 20px;
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  font-size: 28px;
+  font-weight: 300;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-room-btn:active { transform: scale(0.95); }
+
+/* شريط أسفل شاشة الغرف */
+.rooms-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #0f172a;
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 0;
+  border-top: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.bottom-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 15px;
+  border-radius: 10px;
+  transition: all 0.3s;
+}
+
+.bottom-btn.active {
+  color: #06b6d4;
+}
+
+.bottom-icon { font-size: 20px; }
+.bottom-label { font-size: 11px; font-weight: 700; }
+
+/* ==========================================
+   شاشة الدردشة (داخل الغرفة)
+   ========================================== */
+.chat-room-screen {
+  background: #0a0e27;
+  max-width: 600px;
+  margin: 0 auto;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.room-top-bar {
+  background: #0f172a;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+  gap: 8px;
+}
+
+.room-top-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  flex: 1;
+  text-align: center;
+}
+
+.room-top-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.room-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 120px;
+}
+
+/* رسالة النظام */
+.system-message {
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 12px;
+  padding: 12px 15px;
+  color: #7dd3fc;
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+/* رسالة المحادثة */
+.chat-msg {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  animation: fadeInUp 0.3s ease;
+}
+
+.chat-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 18px;
+  color: #fff;
+  flex-shrink: 0;
+  backdrop-filter: blur(10px);
+}
+
+.chat-msg-body {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 10px 15px;
-  border-radius: 15px;
-  max-width: 85%;
-  word-wrap: break-word;
+  border-radius: 12px;
+  padding: 8px 12px;
 }
 
-.message.mine {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3));
-  border-color: rgba(139, 92, 246, 0.4);
-  align-self: flex-start;
-}
-
-.msg-header {
+.chat-msg-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
   flex-wrap: wrap;
 }
 
-.msg-role {
-  font-size: 10.5px;
-  font-weight: 800;
-  padding: 2px 8px;
+.chat-role {
+  font-size: 10px;
+  font-weight: 900;
+  padding: 2px 7px;
   background: rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  letter-spacing: 0.5px;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
 }
 
-.msg-sender {
-  font-weight: 700;
+.chat-name {
+  font-weight: 800;
   font-size: 13px;
 }
 
-.msg-text {
-  font-size: 15px;
-  color: rgba(255, 255, 255, 0.9);
+.chat-time {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-right: auto;
+}
+
+.chat-text {
+  font-size: 14.5px;
+  color: rgba(255, 255, 255, 0.92);
   line-height: 1.5;
+  word-wrap: break-word;
 }
 
-/* ===== نموذج الرسالة ===== */
-.message-form {
+/* شريط الإدخال */
+.room-input-bar {
+  position: absolute;
+  bottom: 55px;
+  left: 0;
+  right: 0;
+  background: #0f172a;
+  padding: 10px 12px;
   display: flex;
-  padding: 10px;
-  background: rgba(15, 23, 42, 0.95);
+  align-items: center;
+  gap: 8px;
   border-top: 1px solid rgba(139, 92, 246, 0.2);
-  gap: 10px;
 }
 
-.message-form input {
+.input-action-btn {
+  background: transparent;
+  border: none;
+  color: #06b6d4;
+  font-size: 26px;
+  cursor: pointer;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 300;
+}
+
+.input-wrapper {
   flex: 1;
-  padding: 12px 18px;
+  position: relative;
+  display: flex;
+  align-items: center;
   background: rgba(255, 255, 255, 0.06);
   border: 1.5px solid rgba(255, 255, 255, 0.1);
   border-radius: 25px;
+  padding: 0 12px;
+}
+
+.input-wrapper input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 12px 5px;
   color: #fff;
-  font-size: 15px;
+  font-size: 14px;
   font-family: inherit;
   outline: none;
 }
 
-.message-form input::placeholder { color: rgba(255, 255, 255, 0.35); }
-
-.message-form input:focus {
-  border-color: rgba(139, 92, 246, 0.7);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+.input-wrapper input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
 }
 
-.send-btn {
-  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+.emoji-btn {
+  background: transparent;
+  border: none;
+  color: #fbbf24;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.send-circle-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
   color: #fff;
   border: none;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
   font-size: 18px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+  box-shadow: 0 4px 15px rgba(6, 182, 212, 0.4);
+  flex-shrink: 0;
 }
 
-.send-btn:active { transform: scale(0.95); }
+.send-circle-btn:active { transform: scale(0.95); }
 
-/* ===== شاشة الغرف ===== */
-.room-card {
+/* الشريط السفلي للغرفة */
+.room-bottom-nav {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #0f172a;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  border-radius: 16px;
-  padding: 15px 18px;
-  transition: all 0.3s;
+  justify-content: space-around;
+  padding: 6px 0;
+  border-top: 1px solid rgba(139, 92, 246, 0.2);
 }
 
-.room-card:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(139, 92, 246, 0.5);
-  transform: translateY(-2px);
-}
-
-.room-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-}
-
-.room-flag {
-  font-size: 26px;
-}
-
-.room-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.room-enter-btn {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: #fff;
+.nav-item {
+  background: transparent;
   border: none;
-  padding: 8px 18px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
+  color: rgba(255, 255, 255, 0.5);
   font-family: inherit;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 12px;
+  border-radius: 8px;
   transition: all 0.3s;
 }
 
-.room-enter-btn:active {
-  transform: scale(0.95);
-}
+.nav-item.active { color: #06b6d4; }
 
-.room-delete-btn {
-  background: rgba(239, 68, 68, 0.2);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  font-size: 16px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+.nav-icon { font-size: 18px; }
+.nav-text { font-size: 10px; font-weight: 700; }
 
+/* ===== للشاشات الصغيرة ===== */
 @media (max-width: 380px) {
   .hero h1 { font-size: 42px; }
   .btn { padding: 14px 20px; font-size: 15px; }
   .modal { padding: 25px 20px; }
-   }
+  .room-title-name { font-size: 14px; }
+  .chat-avatar { width: 36px; height: 36px; font-size: 15px; }
+                              }
