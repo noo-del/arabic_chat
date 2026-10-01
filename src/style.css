@@ -490,7 +490,6 @@ body {
   padding-bottom: 80px;
 }
 
-/* بطاقة الغرفة */
 .room-item {
   background: #fff;
   border-radius: 16px;
@@ -599,7 +598,6 @@ body {
 
 .add-room-btn:active { transform: scale(0.95); }
 
-/* شريط أسفل شاشة الغرف */
 .rooms-bottom {
   position: absolute;
   bottom: 0;
@@ -677,7 +675,6 @@ body {
   padding-bottom: 120px;
 }
 
-/* رسالة النظام */
 .system-message {
   background: rgba(56, 189, 248, 0.1);
   border: 1px solid rgba(56, 189, 248, 0.3);
@@ -689,7 +686,6 @@ body {
   text-align: center;
 }
 
-/* رسالة المحادثة */
 .chat-msg {
   display: flex;
   gap: 10px;
@@ -754,7 +750,6 @@ body {
   word-wrap: break-word;
 }
 
-/* شريط الإدخال */
 .room-input-bar {
   position: absolute;
   bottom: 55px;
@@ -834,7 +829,6 @@ body {
 
 .send-circle-btn:active { transform: scale(0.95); }
 
-/* الشريط السفلي للغرفة */
 .room-bottom-nav {
   position: absolute;
   bottom: 0;
@@ -871,7 +865,7 @@ body {
    شاشة الملف الشخصي
    ========================================== */
 .profile-view {
-  background: linear-gradient(180deg, #0f172a, #0a0e27);
+  background: #0f172a;
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 24px;
   width: 100%;
@@ -1036,4 +1030,4 @@ body {
   .chat-avatar { width: 36px; height: 36px; font-size: 15px; }
   .profile-avatar { width: 90px; height: 90px; font-size: 36px; }
   .profile-username { font-size: 20px; }
-     }
+   }
