@@ -469,7 +469,7 @@ function renderRoomsScreen(user, userData) {
     <div class="screen rooms-screen">
       <header class="rooms-header">
         <div class="rooms-top">
-          <button class="top-icon-btn" title="القائمة">☰</button>
+          <button class="top-icon-btn" id="menuBtn" title="القائمة">☰</button>
           <span class="rooms-title">ARABI chat</span>
           <button class="top-icon-btn" id="logoutBtn" title="خروج">⎋</button>
         </div>
@@ -532,6 +532,8 @@ function renderRoomsScreen(user, userData) {
   `;
 
   document.getElementById("logoutBtn").onclick = () => signOut(auth);
+  document.getElementById("menuBtn").onclick = () =>
+    openSideMenu(user, userData);
 
   document.getElementById("myProfileBtn").onclick = () =>
     showProfile(user.uid, user, userData);
@@ -592,9 +594,413 @@ function renderRoomsScreen(user, userData) {
 }
 
 // ==========================================
+// القائمة الجانبية (☰)
+// ==========================================
+function openSideMenu(user, userData) {
+  const isOwner = userData.role === "owner";
+  const roleInfo = getRoleInfo(userData.role);
+  const avatar = userData.avatar && userData.avatar !== "none" ? userData.avatar : null;
+
+  const menu = document.createElement("div");
+  menu.className = "side-menu-overlay";
+  menu.id = "sideMenuOverlay";
+  menu.innerHTML = `
+    <div class="side-menu">
+      <div class="side-menu-header">
+        <div class="side-menu-avatar" style="border-color:${roleInfo.color}">
+          ${avatar
+            ? `<img src="${avatar}" alt="avatar" />`
+            : `<span>${(userData.username || "?")[0]}</span>`}
+        </div>
+        <div class="side-menu-user-info">
+          <div class="side-menu-role" style="color:${roleInfo.color}">${roleInfo.label}</div>
+          <div class="side-menu-username">${escapeHtml(userData.username || "مجهول")}</div>
+        </div>
+      </div>
+
+      <div class="side-menu-items">
+        <button class="side-menu-item" id="menuMyProfile">
+          <span class="menu-icon">👤</span>
+          <span>ملفي الشخصي</span>
+        </button>
+
+        <button class="side-menu-item" id="menuRooms">
+          <span class="menu-icon">🏠</span>
+          <span>الغرف</span>
+        </button>
+
+        <button class="side-menu-item" id="menuOnline">
+          <span class="menu-icon">👥</span>
+          <span>المتصلين</span>
+        </button>
+
+        <button class="side-menu-item" id="menuSettings">
+          <span class="menu-icon">⚙️</span>
+          <span>الإعدادات</span>
+        </button>
+
+        ${isOwner ? `
+          <button class="side-menu-item admin-item" id="menuAdmin">
+            <span class="menu-icon">👑</span>
+            <span>لوحة التحكم</span>
+          </button>
+        ` : ''}
+
+        <button class="side-menu-item danger-item" id="menuLogout">
+          <span class="menu-icon">🚪</span>
+          <span>خروج</span>
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(menu);
+
+  // إغلاق عند الضغط على الخلفية
+  menu.onclick = (e) => {
+    if (e.target === menu) menu.remove();
+  };
+
+  document.getElementById("menuMyProfile").onclick = () => {
+    menu.remove();
+    showProfile(user.uid, user, userData);
+  };
+
+  document.getElementById("menuRooms").onclick = () => menu.remove();
+
+  document.getElementById("menuOnline").onclick = () => {
+    menu.remove();
+    alert("قريبًا: قائمة المتصلين");
+  };
+
+  document.getElementById("menuSettings").onclick = () => {
+    menu.remove();
+    alert("قريبًا: الإعدادات");
+  };
+
+  document.getElementById("menuLogout").onclick = () => {
+    menu.remove();
+    signOut(auth);
+  };
+
+  if (isOwner) {
+    document.getElementById("menuAdmin").onclick = () => {
+      menu.remove();
+      renderAdminPanel(user, userData);
+    };
+  }
+}
+
+// ==========================================
+// لوحة التحكم (لصاحب الموقع)
+// ==========================================
+function renderAdminPanel(ownerUser, ownerData) {
+  appDiv.innerHTML = `
+    <div class="screen admin-screen">
+      <header class="admin-header">
+        <button class="top-icon-btn" id="adminBackBtn">←</button>
+        <span class="admin-title">👑 لوحة التحكم</span>
+        <button class="top-icon-btn" id="adminLogout">⎋</button>
+      </header>
+
+      <div class="admin-tabs">
+        <button class="admin-tab active" data-tab="users">
+          <span class="tab-icon">👥</span>
+          <span class="tab-label">الأعضاء</span>
+        </button>
+        <button class="admin-tab" data-tab="rooms">
+          <span class="tab-icon">🏠</span>
+          <span class="tab-label">الغرف</span>
+        </button>
+        <button class="admin-tab" data-tab="stats">
+          <span class="tab-icon">📊</span>
+          <span class="tab-label">إحصائيات</span>
+        </button>
+      </div>
+
+      <div id="admin-content" class="admin-content">
+        <p class="empty-msg">جاري التحميل...</p>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("adminBackBtn").onclick = () =>
+    renderRoomsScreen(ownerUser, ownerData);
+  document.getElementById("adminLogout").onclick = () => signOut(auth);
+
+  // التبويبات
+  document.querySelectorAll(".admin-tab").forEach((tab) => {
+    tab.onclick = () => {
+      document.querySelectorAll(".admin-tab").forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      const tabName = tab.dataset.tab;
+      if (tabName === "users") loadAdminUsers(ownerUser, ownerData);
+      else if (tabName === "rooms") loadAdminRooms(ownerUser, ownerData);
+      else if (tabName === "stats") loadAdminStats(ownerUser, ownerData);
+    };
+  });
+
+  // الافتراضي: الأعضاء
+  loadAdminUsers(ownerUser, ownerData);
+}
+
+// ==========================================
+// تبويب الأعضاء
+// ==========================================
+function loadAdminUsers(ownerUser, ownerData) {
+  const content = document.getElementById("admin-content");
+  content.innerHTML = '<p class="empty-msg">جاري التحميل...</p>';
+
+  const usersRef = ref(db, "users");
+  onValue(usersRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) {
+      content.innerHTML = '<p class="empty-msg">لا يوجد أعضاء بعد</p>';
+      return;
+    }
+
+    const users = Object.entries(data).map(([uid, u]) => ({ uid, ...u }));
+    users.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    content.innerHTML = `
+      <div class="admin-search">
+        <input type="text" id="userSearchInput" placeholder="🔍 ابحث بالاسم..." />
+      </div>
+      <div id="users-list" class="admin-users-list"></div>
+    `;
+
+    const renderList = (filter = "") => {
+      const list = document.getElementById("users-list");
+      list.innerHTML = "";
+
+      const filtered = users.filter((u) =>
+        (u.username || "").toLowerCase().includes(filter.toLowerCase())
+      );
+
+      if (filtered.length === 0) {
+        list.innerHTML = '<p class="empty-msg">لا يوجد نتائج</p>';
+        return;
+      }
+
+      filtered.forEach((u) => {
+        const roleInfo = getRoleInfo(u.role);
+        const isMe = u.uid === ownerUser.uid;
+
+        const userEl = document.createElement("div");
+        userEl.className = "admin-user-item";
+        userEl.innerHTML = `
+          <div class="admin-user-info">
+            <div class="admin-user-avatar" style="border-color:${roleInfo.color}">
+              ${u.avatar && u.avatar !== "none"
+                ? `<img src="${u.avatar}" />`
+                : `<span>${(u.username || "?")[0]}</span>`}
+            </div>
+            <div class="admin-user-details">
+              <div class="admin-user-name" style="color:${u.color || '#a5b4fc'}">
+                ${escapeHtml(u.username || "مجهول")}
+              </div>
+              <div class="admin-user-role" style="color:${roleInfo.color}">
+                ${roleInfo.label}
+              </div>
+            </div>
+          </div>
+          ${!isMe ? `
+            <button class="admin-user-action-btn" data-uid="${u.uid}" data-current-role="${u.role || 'member'}">
+              🏷️ الرتبة
+            </button>
+          ` : '<span class="admin-self-badge">أنت</span>'}
+        `;
+        list.appendChild(userEl);
+      });
+
+      // زر تعديل الرتبة
+      document.querySelectorAll(".admin-user-action-btn").forEach((btn) => {
+        btn.onclick = () => {
+          const uid = btn.dataset.uid;
+          const currentRole = btn.dataset.currentRole;
+          openRoleChangeModal(uid, currentRole, ownerUser, ownerData);
+        };
+      });
+    };
+
+    renderList();
+
+    const searchInput = document.getElementById("userSearchInput");
+    if (searchInput) {
+      searchInput.oninput = (e) => renderList(e.target.value);
+    }
+  });
+}
+
+// ==========================================
+// نافذة تغيير الرتبة
+// ==========================================
+function openRoleChangeModal(targetUid, currentRole, ownerUser, ownerData) {
+  const modal = document.createElement("div");
+  modal.className = "modal-overlay";
+  modal.id = "roleChangeModal";
+  modal.innerHTML = `
+    <div class="modal">
+      <button class="modal-close" id="closeRoleChange">✕</button>
+      <h2>🏷️ تغيير الرتبة</h2>
+
+      <div class="field">
+        <label>اختر الرتبة الجديدة</label>
+        <select id="newRoleSelect">
+          <option value="owner" ${currentRole === "owner" ? "selected" : ""}>👑 صاحب الموقع</option>
+          <option value="super_admin" ${currentRole === "super_admin" ? "selected" : ""}>🛡️ سوبر أدمن</option>
+          <option value="admin" ${currentRole === "admin" ? "selected" : ""}>⭐ أدمن</option>
+          <option value="premium" ${currentRole === "premium" ? "selected" : ""}>💎 بريميوم</option>
+          <option value="member" ${currentRole === "member" ? "selected" : ""}>👤 عضو</option>
+          <option value="guest" ${currentRole === "guest" ? "selected" : ""}>🎭 زائر</option>
+        </select>
+      </div>
+
+      <button class="btn-action" id="saveRoleBtn">💾 حفظ الرتبة</button>
+      <button class="btn-action" id="removeRoleBtn" style="background:linear-gradient(135deg,#ef4444,#dc2626);">🗑️ سحب الرتبة (عضو)</button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  document.getElementById("closeRoleChange").onclick = () => modal.remove();
+
+  document.getElementById("saveRoleBtn").onclick = async () => {
+    const newRole = document.getElementById("newRoleSelect").value;
+    try {
+      await set(ref(db, `users/${targetUid}/role`), newRole);
+      alert("✅ تم تغيير الرتبة");
+      modal.remove();
+    } catch (error) {
+      alert("فشل: " + error.message);
+    }
+  };
+
+  document.getElementById("removeRoleBtn").onclick = async () => {
+    if (!confirm("سحب الرتبة وجعله عضوًا عاديًا؟")) return;
+    try {
+      await set(ref(db, `users/${targetUid}/role`), "member");
+      alert("✅ تم سحب الرتبة");
+      modal.remove();
+    } catch (error) {
+      alert("فشل: " + error.message);
+    }
+  };
+}
+
+// ==========================================
+// تبويب الغرف
+// ==========================================
+function loadAdminRooms(ownerUser, ownerData) {
+  const content = document.getElementById("admin-content");
+  content.innerHTML = '<p class="empty-msg">جاري التحميل...</p>';
+
+  const roomsRef = ref(db, "rooms");
+  onValue(roomsRef, (snapshot) => {
+    const data = snapshot.val();
+    content.innerHTML = `
+      <button class="btn-action" id="adminAddRoomBtn">➕ إضافة غرفة جديدة</button>
+      <div id="admin-rooms-list" class="admin-rooms-list"></div>
+    `;
+
+    document.getElementById("adminAddRoomBtn").onclick = () => {
+      openAddRoomModal();
+    };
+
+    const list = document.getElementById("admin-rooms-list");
+
+    if (!data) {
+      list.innerHTML = '<p class="empty-msg">لا توجد غرف</p>';
+      return;
+    }
+
+    Object.entries(data).forEach(([roomId, room]) => {
+      const roomEl = document.createElement("div");
+      roomEl.className = "admin-room-item";
+      roomEl.innerHTML = `
+        <div class="admin-room-info">
+          <span class="admin-room-flag">${room.flag || "💬"}</span>
+          <div>
+            <div class="admin-room-name">${escapeHtml(room.name || roomId)}</div>
+            <div class="admin-room-id">ID: ${roomId}</div>
+          </div>
+        </div>
+        <button class="admin-delete-room-btn" data-room="${roomId}">🗑️ حذف</button>
+      `;
+      list.appendChild(roomEl);
+    });
+
+    document.querySelectorAll(".admin-delete-room-btn").forEach((btn) => {
+      btn.onclick = async () => {
+        const roomId = btn.dataset.room;
+        if (confirm(`حذف الغرفة "${roomId}"؟`)) {
+          await set(ref(db, `rooms/${roomId}`), null);
+        }
+      };
+    });
+  });
+}
+
+// ==========================================
+// تبويب الإحصائيات
+// ==========================================
+function loadAdminStats(ownerUser, ownerData) {
+  const content = document.getElementById("admin-content");
+  content.innerHTML = '<p class="empty-msg">جاري التحميل...</p>';
+
+  Promise.all([
+    get(ref(db, "users")),
+    get(ref(db, "rooms")),
+  ]).then(([usersSnap, roomsSnap]) => {
+    const users = usersSnap.val() || {};
+    const rooms = roomsSnap.val() || {};
+
+    const usersCount = Object.keys(users).length;
+    const roomsCount = Object.keys(rooms).length;
+
+    const rolesCount = {};
+    Object.values(users).forEach((u) => {
+      const r = u.role || "member";
+      rolesCount[r] = (rolesCount[r] || 0) + 1;
+    });
+
+    content.innerHTML = `
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-number">${usersCount}</div>
+          <div class="stat-label">عضو</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🏠</div>
+          <div class="stat-number">${roomsCount}</div>
+          <div class="stat-label">غرفة</div>
+        </div>
+      </div>
+
+      <h3 style="text-align:center;margin:20px 0 10px;color:#a5b4fc;">توزيع الرتب</h3>
+      <div class="roles-distribution">
+        ${Object.entries(rolesCount).map(([role, count]) => {
+          const info = getRoleInfo(role);
+          return `
+            <div class="role-stat-item">
+              <span style="color:${info.color};font-weight:900;">${info.label}</span>
+              <span class="role-stat-count">${count}</span>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
+  });
+}
+
+// ==========================================
 // نافذة إضافة غرفة (لصاحب الموقع)
 // ==========================================
 function openAddRoomModal() {
+  const existing = document.getElementById("addRoomModal");
+  if (existing) existing.remove();
+
   const modal = document.createElement("div");
   modal.className = "modal-overlay";
   modal.id = "addRoomModal";
@@ -702,6 +1108,9 @@ function renderChatScreen(user, userData, roomId = "jordan") {
   document.getElementById("backBtn").onclick = () =>
     renderRoomsScreen(user, userData);
 
+  document.getElementById("menuBtn").onclick = () =>
+    openSideMenu(user, userData);
+
   document.getElementById("myProfileRoomBtn").onclick = () =>
     showProfile(user.uid, user, userData);
 
@@ -805,11 +1214,9 @@ function startChat(user, userData, roomId = "jordan") {
 function showProfile(userId, currentUser, currentUserData) {
   const userRef = ref(db, `users/${userId}`);
 
-  // احذف نافذة سابقة إن وُجدت
   const existing = document.getElementById("profileModal");
   if (existing) existing.remove();
 
-  // أوقف مراقبة سابقة
   if (window._profileUnsubscribe) {
     window._profileUnsubscribe();
     window._profileUnsubscribe = null;
@@ -842,7 +1249,6 @@ function showProfile(userId, currentUser, currentUserData) {
         })
       : "غير معروف";
 
-    // حذف النافذة القديمة إن وُجدت
     const oldModal = document.getElementById("profileModal");
     if (oldModal) oldModal.remove();
 
@@ -901,7 +1307,6 @@ function showProfile(userId, currentUser, currentUserData) {
 
     document.body.appendChild(modal);
 
-    // تشغيل الأغنية
     if (window._profileAudio) {
       window._profileAudio.pause();
       window._profileAudio = null;
@@ -1036,7 +1441,6 @@ function openEditProfile(user, userData) {
 
   document.getElementById("closeEdit").onclick = () => modal.remove();
 
-  // معاينة الصورة
   document.getElementById("avatarFile").onchange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -1049,7 +1453,6 @@ function openEditProfile(user, userData) {
     }
   };
 
-  // معاينة الغلاف والأغنية
   if (canEditExtra) {
     const coverInput = document.getElementById("coverFile");
     if (coverInput) {
@@ -1107,13 +1510,11 @@ function openEditProfile(user, userData) {
         updates.age = parseInt(newAge);
       }
 
-      // رفع الصورة
       if (avatarFile) {
         const avatarUrl = await uploadToCloudinary(avatarFile, "image");
         if (avatarUrl) updates.avatar = avatarUrl;
       }
 
-      // الرتب العالية
       if (canEditExtra) {
         const coverFile = document.getElementById("coverFile").files[0];
         const songFile = document.getElementById("songFile").files[0];
