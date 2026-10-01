@@ -54,6 +54,28 @@ let lastRenderedScreen = null;
 window._currentUser = null;
 window._currentUserData = null;
 
+// ===== دالة آمنة لحذف عنصر =====
+function safeRemove(element) {
+  try {
+    if (element && element.parentNode) {
+      element.parentNode.removeChild(element);
+    }
+  } catch (e) {
+    console.log("safeRemove error:", e);
+  }
+}
+
+function safeRemoveById(id) {
+  try {
+    const el = document.getElementById(id);
+    if (el && el.parentNode) {
+      el.parentNode.removeChild(el);
+    }
+  } catch (e) {
+    console.log("safeRemoveById error:", e);
+  }
+}
+
 // ==========================================
 // نظام الرتب
 // ==========================================
@@ -122,6 +144,8 @@ function renderWelcomeScreen() {
 // نافذة دخول الأعضاء
 // ==========================================
 function openMembersModal() {
+  safeRemoveById("membersModal");
+
   const modal = document.createElement("div");
   modal.className = "modal-overlay";
   modal.id = "membersModal";
@@ -151,11 +175,11 @@ function openMembersModal() {
 
   document.body.appendChild(modal);
 
-  document.getElementById("closeMembers").onclick = () => modal.remove();
+  document.getElementById("closeMembers").onclick = () => safeRemove(modal);
   document.getElementById("forgotLink").onclick = () =>
     alert("قريبًا: استعادة كلمة المرور");
   document.getElementById("goToRegister").onclick = () => {
-    modal.remove();
+    safeRemove(modal);
     openRegisterModal();
   };
   document.getElementById("loginBtn").onclick = handleLogin;
@@ -165,6 +189,8 @@ function openMembersModal() {
 // نافذة إنشاء حساب
 // ==========================================
 function openRegisterModal() {
+  safeRemoveById("registerModal");
+
   const modal = document.createElement("div");
   modal.className = "modal-overlay";
   modal.id = "registerModal";
@@ -229,7 +255,7 @@ function openRegisterModal() {
     ageSelect.appendChild(opt);
   }
 
-  document.getElementById("closeRegister").onclick = () => modal.remove();
+  document.getElementById("closeRegister").onclick = () => safeRemove(modal);
   document.getElementById("registerBtn").onclick = handleRegister;
 }
 
@@ -237,6 +263,8 @@ function openRegisterModal() {
 // نافذة دخول كضيف
 // ==========================================
 function openGuestModal() {
+  safeRemoveById("guestModal");
+
   const modal = document.createElement("div");
   modal.className = "modal-overlay";
   modal.id = "guestModal";
@@ -270,7 +298,7 @@ function openGuestModal() {
 
   document.body.appendChild(modal);
 
-  document.getElementById("closeGuest").onclick = () => modal.remove();
+  document.getElementById("closeGuest").onclick = () => safeRemove(modal);
   document.getElementById("enterAsGuest").onclick = handleGuestLogin;
 }
 
@@ -311,7 +339,7 @@ async function handleLogin() {
       return;
     }
 
-    document.getElementById("membersModal").remove();
+    safeRemoveById("membersModal");
   } catch (error) {
     console.error(error);
     if (
@@ -390,7 +418,7 @@ async function handleRegister() {
       uid: user.uid,
     });
 
-    document.getElementById("registerModal").remove();
+    safeRemoveById("registerModal");
 
     await signOut(auth);
 
@@ -438,7 +466,7 @@ async function handleGuestLogin() {
       createdAt: Date.now(),
     });
 
-    document.getElementById("guestModal").remove();
+    safeRemoveById("guestModal");
   } catch (error) {
     console.error(error);
     alert("فشل الدخول: " + error.message);
@@ -475,7 +503,6 @@ function showVerificationMessage(email) {
 function renderRoomsScreen(user, userData) {
   lastRenderedScreen = "rooms";
 
-  // حفظ البيانات العالمية للاستدعاء من HTML
   window._currentUser = user;
   window._currentUserData = userData;
 
@@ -548,7 +575,6 @@ function renderRoomsScreen(user, userData) {
     </div>
   `;
 
-  // تعيين الدالة العامة للقائمة
   window._openMenu = () => openSideMenu(user, userData);
 
   const logoutBtnEl = document.getElementById("logoutBtn");
@@ -635,8 +661,7 @@ function openSideMenu(user, userData) {
   const roleInfo = getRoleInfo(userData.role);
   const avatar = userData.avatar && userData.avatar !== "none" ? userData.avatar : null;
 
-  const existing = document.getElementById("sideMenuOverlay");
-  if (existing) existing.remove();
+  safeRemoveById("sideMenuOverlay");
 
   const menu = document.createElement("div");
   menu.className = "side-menu-overlay";
@@ -694,26 +719,26 @@ function openSideMenu(user, userData) {
   document.body.appendChild(menu);
 
   menu.onclick = (e) => {
-    if (e.target === menu) menu.remove();
+    if (e.target === menu) safeRemove(menu);
   };
 
   const menuMyProfileEl = document.getElementById("menuMyProfile");
   if (menuMyProfileEl) {
     menuMyProfileEl.onclick = () => {
-      menu.remove();
+      safeRemove(menu);
       showProfile(user.uid, user, userData);
     };
   }
 
   const menuRoomsEl = document.getElementById("menuRooms");
   if (menuRoomsEl) {
-    menuRoomsEl.onclick = () => menu.remove();
+    menuRoomsEl.onclick = () => safeRemove(menu);
   }
 
   const menuOnlineEl = document.getElementById("menuOnline");
   if (menuOnlineEl) {
     menuOnlineEl.onclick = () => {
-      menu.remove();
+      safeRemove(menu);
       alert("قريبًا: قائمة المتصلين");
     };
   }
@@ -721,7 +746,7 @@ function openSideMenu(user, userData) {
   const menuSettingsEl = document.getElementById("menuSettings");
   if (menuSettingsEl) {
     menuSettingsEl.onclick = () => {
-      menu.remove();
+      safeRemove(menu);
       alert("قريبًا: الإعدادات");
     };
   }
@@ -729,7 +754,7 @@ function openSideMenu(user, userData) {
   const menuLogoutEl = document.getElementById("menuLogout");
   if (menuLogoutEl) {
     menuLogoutEl.onclick = () => {
-      menu.remove();
+      safeRemove(menu);
       signOut(auth);
     };
   }
@@ -738,7 +763,7 @@ function openSideMenu(user, userData) {
     const menuAdminEl = document.getElementById("menuAdmin");
     if (menuAdminEl) {
       menuAdminEl.onclick = () => {
-        menu.remove();
+        safeRemove(menu);
         renderAdminPanel(user, userData);
       };
     }
@@ -893,6 +918,8 @@ function loadAdminUsers(ownerUser, ownerData) {
 // نافذة تغيير الرتبة
 // ==========================================
 function openRoleChangeModal(targetUid, currentRole, ownerUser, ownerData) {
+  safeRemoveById("roleChangeModal");
+
   const modal = document.createElement("div");
   modal.className = "modal-overlay";
   modal.id = "roleChangeModal";
@@ -920,14 +947,14 @@ function openRoleChangeModal(targetUid, currentRole, ownerUser, ownerData) {
 
   document.body.appendChild(modal);
 
-  document.getElementById("closeRoleChange").onclick = () => modal.remove();
+  document.getElementById("closeRoleChange").onclick = () => safeRemove(modal);
 
   document.getElementById("saveRoleBtn").onclick = async () => {
     const newRole = document.getElementById("newRoleSelect").value;
     try {
       await set(ref(db, `users/${targetUid}/role`), newRole);
       alert("✅ تم تغيير الرتبة");
-      modal.remove();
+      safeRemove(modal);
     } catch (error) {
       alert("فشل: " + error.message);
     }
@@ -938,7 +965,7 @@ function openRoleChangeModal(targetUid, currentRole, ownerUser, ownerData) {
     try {
       await set(ref(db, `users/${targetUid}/role`), "member");
       alert("✅ تم سحب الرتبة");
-      modal.remove();
+      safeRemove(modal);
     } catch (error) {
       alert("فشل: " + error.message);
     }
@@ -1064,8 +1091,7 @@ function loadAdminStats(ownerUser, ownerData) {
 // نافذة إضافة غرفة (لصاحب الموقع)
 // ==========================================
 function openAddRoomModal() {
-  const existing = document.getElementById("addRoomModal");
-  if (existing) existing.remove();
+  safeRemoveById("addRoomModal");
 
   const modal = document.createElement("div");
   modal.className = "modal-overlay";
@@ -1096,7 +1122,7 @@ function openAddRoomModal() {
 
   document.body.appendChild(modal);
 
-  document.getElementById("closeAddRoom").onclick = () => modal.remove();
+  document.getElementById("closeAddRoom").onclick = () => safeRemove(modal);
 
   document.getElementById("createRoomBtn").onclick = async () => {
     const name = document.getElementById("roomName").value.trim();
@@ -1115,7 +1141,7 @@ function openAddRoomModal() {
         membersCount: 0,
         createdAt: Date.now(),
       });
-      modal.remove();
+      safeRemove(modal);
     } catch (error) {
       alert("فشل الإنشاء: " + error.message);
     }
@@ -1128,7 +1154,6 @@ function openAddRoomModal() {
 function renderChatScreen(user, userData, roomId = "jordan") {
   lastRenderedScreen = "chat";
 
-  // حفظ البيانات العالمية للاستدعاء من HTML
   window._currentUser = user;
   window._currentUserData = userData;
 
@@ -1177,7 +1202,6 @@ function renderChatScreen(user, userData, roomId = "jordan") {
     </div>
   `;
 
-  // تعيين الدالة العامة للقائمة
   window._openMenu = () => openSideMenu(user, userData);
 
   const backBtnEl = document.getElementById("backBtn");
@@ -1187,7 +1211,6 @@ function renderChatScreen(user, userData, roomId = "jordan") {
     });
   }
 
-  // ربط إضافي كاحتياط
   const chatMenuBtnEl = document.getElementById("chatMenuBtn");
   if (chatMenuBtnEl) {
     chatMenuBtnEl.addEventListener("click", (e) => {
@@ -1306,8 +1329,7 @@ function startChat(user, userData, roomId = "jordan") {
 function showProfile(userId, currentUser, currentUserData) {
   const userRef = ref(db, `users/${userId}`);
 
-  const existing = document.getElementById("profileModal");
-  if (existing) existing.remove();
+  safeRemoveById("profileModal");
 
   if (window._profileUnsubscribe) {
     window._profileUnsubscribe();
@@ -1341,8 +1363,7 @@ function showProfile(userId, currentUser, currentUserData) {
         })
       : "غير معروف";
 
-    const oldModal = document.getElementById("profileModal");
-    if (oldModal) oldModal.remove();
+    safeRemoveById("profileModal");
 
     const modal = document.createElement("div");
     modal.className = "modal-overlay";
@@ -1420,7 +1441,7 @@ function showProfile(userId, currentUser, currentUserData) {
         window._profileUnsubscribe();
         window._profileUnsubscribe = null;
       }
-      modal.remove();
+      safeRemove(modal);
     };
 
     if (isMyProfile) {
@@ -1433,7 +1454,7 @@ function showProfile(userId, currentUser, currentUserData) {
           window._profileUnsubscribe();
           window._profileUnsubscribe = null;
         }
-        modal.remove();
+        safeRemove(modal);
         openEditProfile(currentUser, currentUserData);
       };
     }
@@ -1449,6 +1470,8 @@ function openEditProfile(user, userData) {
 
   const avatar = userData.avatar && userData.avatar !== "none" ? userData.avatar : "";
   const cover = userData.cover && userData.cover !== "none" ? userData.cover : "";
+
+  safeRemoveById("editProfileModal");
 
   const modal = document.createElement("div");
   modal.className = "modal-overlay";
@@ -1531,7 +1554,7 @@ function openEditProfile(user, userData) {
 
   document.body.appendChild(modal);
 
-  document.getElementById("closeEdit").onclick = () => modal.remove();
+  document.getElementById("closeEdit").onclick = () => safeRemove(modal);
 
   document.getElementById("avatarFile").onchange = (e) => {
     const file = e.target.files[0];
@@ -1634,7 +1657,7 @@ function openEditProfile(user, userData) {
       });
 
       alert("✅ تم حفظ التعديلات");
-      document.getElementById("editProfileModal").remove();
+      safeRemoveById("editProfileModal");
     } catch (error) {
       console.error(error);
       alert("فشل الحفظ: " + error.message);
