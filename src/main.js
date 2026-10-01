@@ -804,7 +804,18 @@ function startChat(user, userData, roomId = "jordan") {
 // ==========================================
 function showProfile(userId, currentUser, currentUserData) {
   const userRef = ref(db, `users/${userId}`);
-  get(userRef).then((snapshot) => {
+
+  // احذف نافذة سابقة إن وُجدت
+  const existing = document.getElementById("profileModal");
+  if (existing) existing.remove();
+
+  // أوقف مراقبة سابقة
+  if (window._profileUnsubscribe) {
+    window._profileUnsubscribe();
+    window._profileUnsubscribe = null;
+  }
+
+  window._profileUnsubscribe = onValue(userRef, (snapshot) => {
     if (!snapshot.exists()) {
       alert("المستخدم غير موجود");
       return;
@@ -830,15 +841,6 @@ function showProfile(userId, currentUser, currentUserData) {
           day: "numeric",
         })
       : "غير معروف";
-
-    // نشغل الأغنية تلقائيًا
-    if (profile.song && profile.song !== "none" && profile.song.startsWith("http")) {
-      try {
-        window._profileAudio = new Audio(profile.song);
-        window._profileAudio.volume = 0.5;
-        window._profileAudio.play().catch(() => {});
-      } catch (e) {}
-    }
 
     const modal = document.createElement("div");
     modal.className = "modal-overlay";
@@ -871,7 +873,7 @@ function showProfile(userId, currentUser, currentUserData) {
 
           ${profile.song && profile.song !== "none" && profile.song.startsWith("http") ? `
             <button class="btn-action" id="toggleSongBtn" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);">
-              🎵 إيقاف/تشغيل الأغنية
+              🎵 تشغيل / إيقاف الأغنية
             </button>
           ` : ''}
 
@@ -901,10 +903,27 @@ function showProfile(userId, currentUser, currentUserData) {
 
     document.body.appendChild(modal);
 
+    // تشغيل الأغنية
+    if (window._profileAudio) {
+      window._profileAudio.pause();
+      window._profileAudio = null;
+    }
+    if (profile.song && profile.song !== "none" && profile.song.startsWith("http")) {
+      try {
+        window._profileAudio = new Audio(profile.song);
+        window._profileAudio.volume = 0.5;
+        window._profileAudio.play().catch(() => {});
+      } catch (e) {}
+    }
+
     document.getElementById("closeProfile").onclick = () => {
       if (window._profileAudio) {
         window._profileAudio.pause();
         window._profileAudio = null;
+      }
+      if (window._profileUnsubscribe) {
+        window._profileUnsubscribe();
+        window._profileUnsubscribe = null;
       }
       modal.remove();
     };
@@ -927,6 +946,10 @@ function showProfile(userId, currentUser, currentUserData) {
         if (window._profileAudio) {
           window._profileAudio.pause();
           window._profileAudio = null;
+        }
+        if (window._profileUnsubscribe) {
+          window._profileUnsubscribe();
+          window._profileUnsubscribe = null;
         }
         modal.remove();
         openEditProfile(currentUser, currentUserData);
@@ -992,9 +1015,9 @@ function openEditProfile(user, userData) {
         <div class="field" style="flex:1">
           <label>العمر</label>
           <select id="editAge">
-            ${Array.from({ length: 71 }, (_, i) => i)
-              .filter((n) => n === 0 || n >= 10)
-              .map((age) => `<option value="${age}" ${userData.age == age ? "selected" : ""}>${age === 0 ? "اختر" : age}</option>`)
+            <option value="">اختر</option>
+            ${Array.from({ length: 61 }, (_, i) => i + 10)
+              .map((age) => `<option value="${age}" ${userData.age == age ? "selected" : ""}>${age}</option>`)
               .join("")}
           </select>
         </div>
@@ -1041,7 +1064,7 @@ function openEditProfile(user, userData) {
     }
   };
 
-  // معاينة الغلاف
+  // معاينة الغلاف والأغنية
   if (canEditExtra) {
     const coverInput = document.getElementById("coverFile");
     if (coverInput) {
@@ -1095,7 +1118,7 @@ function openEditProfile(user, userData) {
         gender: newGender,
       };
 
-      if (newAge && newAge !== "0") {
+      if (newAge && newAge !== "") {
         updates.age = parseInt(newAge);
       }
 
@@ -1195,10 +1218,13 @@ function escapeHtml(text) {
 onAuthStateChanged(auth, (user) => {
   if (user) {
     const userRef = ref(db, `users/${user.uid}`);
-    get(userRef).then((snapshot) => {
+    onValue(userRef, (snapshot) => {
       if (snapshot.exists()) {
         const userData = snapshot.val();
-        renderRoomsScreen(user, userData);
+        // حدّث الشاشة الحالية فقط إذا لم تكن هناك نافذة مفتوحة
+        if (!document.getElementById("editProfileModal") && !document.getElementById("profileModal")) {
+          renderRoomsScreen(user, userData);
+        }
       } else {
         renderWelcomeScreen();
       }
