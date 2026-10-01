@@ -369,7 +369,7 @@ async function handleRegister() {
       cover: "none",
       song: "none",
       color: "#a5b4fc",
-      bgColor: "#0a0e27",
+      themeColor: "#0f172a",
       decoration: "none",
       bio: "",
       createdAt: Date.now(),
@@ -422,7 +422,7 @@ async function handleGuestLogin() {
       cover: "none",
       song: "none",
       color: "#94a3b8",
-      bgColor: "#0a0e27",
+      themeColor: "#0f172a",
       decoration: "none",
       bio: "",
       createdAt: Date.now(),
@@ -813,6 +813,7 @@ function showProfile(userId, currentUser, currentUserData) {
     const profile = snapshot.val();
     const isMyProfile = userId === currentUser.uid;
     const roleInfo = getRoleInfo(profile.role);
+    const themeColor = profile.themeColor || "#0f172a";
 
     const avatar = profile.avatar && profile.avatar !== "none"
       ? profile.avatar
@@ -823,17 +824,30 @@ function showProfile(userId, currentUser, currentUserData) {
       : null;
 
     const joinDate = profile.createdAt
-      ? new Date(profile.createdAt).toLocaleDateString("ar-EG")
+      ? new Date(profile.createdAt).toLocaleDateString("ar-EG", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
       : "غير معروف";
+
+    // نشغل الأغنية تلقائيًا
+    if (profile.song && profile.song !== "none" && profile.song.startsWith("http")) {
+      try {
+        window._profileAudio = new Audio(profile.song);
+        window._profileAudio.volume = 0.5;
+        window._profileAudio.play().catch(() => {});
+      } catch (e) {}
+    }
 
     const modal = document.createElement("div");
     modal.className = "modal-overlay";
     modal.id = "profileModal";
     modal.innerHTML = `
-      <div class="profile-view">
+      <div class="profile-view" style="background:linear-gradient(180deg, ${themeColor}cc, #0a0e27);">
         <button class="modal-close" id="closeProfile">✕</button>
 
-        <div class="profile-cover" style="${cover ? `background-image:url('${cover}');` : ''}"></div>
+        <div class="profile-cover" style="${cover ? `background-image:url('${cover}');` : `background:linear-gradient(135deg, ${themeColor}, ${roleInfo.color}40);`}"></div>
 
         <div class="profile-avatar-container">
           <div class="profile-avatar" style="border-color:${roleInfo.color}">
@@ -853,6 +867,12 @@ function showProfile(userId, currentUser, currentUserData) {
 
           ${profile.bio ? `
             <div class="profile-bio">${escapeHtml(profile.bio)}</div>
+          ` : ''}
+
+          ${profile.song && profile.song !== "none" && profile.song.startsWith("http") ? `
+            <button class="btn-action" id="toggleSongBtn" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);">
+              🎵 إيقاف/تشغيل الأغنية
+            </button>
           ` : ''}
 
           <div class="profile-meta">
@@ -881,10 +901,33 @@ function showProfile(userId, currentUser, currentUserData) {
 
     document.body.appendChild(modal);
 
-    document.getElementById("closeProfile").onclick = () => modal.remove();
+    document.getElementById("closeProfile").onclick = () => {
+      if (window._profileAudio) {
+        window._profileAudio.pause();
+        window._profileAudio = null;
+      }
+      modal.remove();
+    };
+
+    const songBtn = document.getElementById("toggleSongBtn");
+    if (songBtn) {
+      songBtn.onclick = () => {
+        if (window._profileAudio) {
+          if (window._profileAudio.paused) {
+            window._profileAudio.play();
+          } else {
+            window._profileAudio.pause();
+          }
+        }
+      };
+    }
 
     if (isMyProfile) {
       document.getElementById("editProfileBtn").onclick = () => {
+        if (window._profileAudio) {
+          window._profileAudio.pause();
+          window._profileAudio = null;
+        }
         modal.remove();
         openEditProfile(currentUser, currentUserData);
       };
@@ -900,6 +943,7 @@ function openEditProfile(user, userData) {
   const canEditExtra = ["owner", "super_admin", "admin", "premium"].includes(role);
 
   const avatar = userData.avatar && userData.avatar !== "none" ? userData.avatar : "";
+  const cover = userData.cover && userData.cover !== "none" ? userData.cover : "";
 
   const modal = document.createElement("div");
   modal.className = "modal-overlay";
@@ -917,6 +961,16 @@ function openEditProfile(user, userData) {
         </div>
       </div>
 
+      ${canEditExtra ? `
+        <div class="field">
+          <label>صورة الغلاف</label>
+          <input type="file" id="coverFile" accept="image/*" class="file-input" />
+          <div id="coverPreview" style="margin-top:10px;text-align:center;">
+            ${cover ? `<img src="${cover}" style="width:100%;height:80px;border-radius:12px;object-fit:cover;" />` : ""}
+          </div>
+        </div>
+      ` : ''}
+
       <div class="field">
         <label>الاسم</label>
         <input type="text" id="editUsername" value="${escapeHtml(userData.username || '')}" maxlength="20" />
@@ -927,15 +981,42 @@ function openEditProfile(user, userData) {
         <input type="text" id="editBio" value="${escapeHtml(userData.bio || '')}" maxlength="60" placeholder="اكتب شيئًا عنك..." />
       </div>
 
+      <div style="display: flex; gap: 10px;">
+        <div class="field" style="flex:1">
+          <label>الجنس</label>
+          <select id="editGender">
+            <option value="male" ${userData.gender === "male" ? "selected" : ""}>ذكر</option>
+            <option value="female" ${userData.gender === "female" ? "selected" : ""}>أنثى</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1">
+          <label>العمر</label>
+          <select id="editAge">
+            ${Array.from({ length: 71 }, (_, i) => i)
+              .filter((n) => n === 0 || n >= 10)
+              .map((age) => `<option value="${age}" ${userData.age == age ? "selected" : ""}>${age === 0 ? "اختر" : age}</option>`)
+              .join("")}
+          </select>
+        </div>
+      </div>
+
       ${canEditExtra ? `
+        <div class="field">
+          <label>أغنية الملف (اختر من ملفاتك)</label>
+          <input type="file" id="songFile" accept="audio/*" class="file-input" />
+          <div id="songPreview" style="margin-top:10px;font-size:13px;color:#a5b4fc;text-align:center;">
+            ${userData.song && userData.song !== "none" ? "🎵 يوجد أغنية محفوظة" : "لا توجد أغنية"}
+          </div>
+        </div>
+
         <div class="field">
           <label>لون الاسم</label>
           <input type="color" id="editColor" value="${userData.color || '#a5b4fc'}" class="color-input" />
         </div>
 
         <div class="field">
-          <label>رابط الأغنية (MP3)</label>
-          <input type="url" id="editSong" value="${userData.song !== 'none' ? (userData.song || '') : ''}" placeholder="https://..." />
+          <label>لون الملف الكامل</label>
+          <input type="color" id="editThemeColor" value="${userData.themeColor || '#0f172a'}" class="color-input" />
         </div>
       ` : ''}
 
@@ -947,6 +1028,7 @@ function openEditProfile(user, userData) {
 
   document.getElementById("closeEdit").onclick = () => modal.remove();
 
+  // معاينة الصورة
   document.getElementById("avatarFile").onchange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -959,6 +1041,35 @@ function openEditProfile(user, userData) {
     }
   };
 
+  // معاينة الغلاف
+  if (canEditExtra) {
+    const coverInput = document.getElementById("coverFile");
+    if (coverInput) {
+      coverInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            document.getElementById("coverPreview").innerHTML =
+              `<img src="${ev.target.result}" style="width:100%;height:80px;border-radius:12px;object-fit:cover;" />`;
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+    }
+
+    const songInput = document.getElementById("songFile");
+    if (songInput) {
+      songInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          document.getElementById("songPreview").innerHTML =
+            `✅ تم اختيار: ${file.name}`;
+        }
+      };
+    }
+  }
+
   document.getElementById("saveProfileBtn").onclick = async () => {
     const btn = document.getElementById("saveProfileBtn");
     btn.disabled = true;
@@ -967,6 +1078,8 @@ function openEditProfile(user, userData) {
     try {
       const newUsername = document.getElementById("editUsername").value.trim();
       const newBio = document.getElementById("editBio").value.trim();
+      const newGender = document.getElementById("editGender").value;
+      const newAge = document.getElementById("editAge").value;
       const avatarFile = document.getElementById("avatarFile").files[0];
 
       if (!newUsername) {
@@ -979,18 +1092,39 @@ function openEditProfile(user, userData) {
       const updates = {
         username: newUsername,
         bio: newBio,
+        gender: newGender,
       };
 
+      if (newAge && newAge !== "0") {
+        updates.age = parseInt(newAge);
+      }
+
+      // رفع الصورة
       if (avatarFile) {
-        const avatarUrl = await uploadToCloudinary(avatarFile);
+        const avatarUrl = await uploadToCloudinary(avatarFile, "image");
         if (avatarUrl) updates.avatar = avatarUrl;
       }
 
+      // الرتب العالية
       if (canEditExtra) {
+        const coverFile = document.getElementById("coverFile").files[0];
+        const songFile = document.getElementById("songFile").files[0];
         const newColor = document.getElementById("editColor").value;
-        const newSong = document.getElementById("editSong").value.trim();
+        const newThemeColor = document.getElementById("editThemeColor").value;
+
         updates.color = newColor;
-        if (newSong) updates.song = newSong;
+        updates.themeColor = newThemeColor;
+
+        if (coverFile) {
+          const coverUrl = await uploadToCloudinary(coverFile, "image");
+          if (coverUrl) updates.cover = coverUrl;
+        }
+
+        if (songFile) {
+          btn.textContent = "جاري رفع الأغنية...";
+          const songUrl = await uploadToCloudinary(songFile, "auto");
+          if (songUrl) updates.song = songUrl;
+        }
       }
 
       await set(ref(db, `users/${user.uid}`), {
@@ -1011,14 +1145,14 @@ function openEditProfile(user, userData) {
 }
 
 // ==========================================
-// رفع الصورة إلى Cloudinary
+// رفع الملفات إلى Cloudinary
 // ==========================================
-async function uploadToCloudinary(file) {
+async function uploadToCloudinary(file, resourceType = "image") {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
 
-  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`;
 
   const response = await fetch(url, {
     method: "POST",
@@ -1028,7 +1162,7 @@ async function uploadToCloudinary(file) {
   if (!response.ok) {
     const err = await response.text();
     console.error("Cloudinary error:", err);
-    throw new Error("فشل رفع الصورة");
+    throw new Error("فشل رفع الملف");
   }
 
   const data = await response.json();
