@@ -878,7 +878,7 @@ body {
 }
 
 .profile-cover {
-  height: 130px;
+  height: 220px;
   background: linear-gradient(135deg, #06b6d4, #3b82f6, #8b5cf6);
   background-size: cover;
   background-position: center;
@@ -1030,4 +1030,5 @@ body {
   .chat-avatar { width: 36px; height: 36px; font-size: 15px; }
   .profile-avatar { width: 90px; height: 90px; font-size: 36px; }
   .profile-username { font-size: 20px; }
+  .profile-cover { height: 180px; }
    }
