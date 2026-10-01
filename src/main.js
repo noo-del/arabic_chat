@@ -50,6 +50,10 @@ let currentUser = null;
 let currentUserData = null;
 let lastRenderedScreen = null;
 
+// ===== متغيرات عامة للاستدعاء من HTML =====
+window._currentUser = null;
+window._currentUserData = null;
+
 // ==========================================
 // نظام الرتب
 // ==========================================
@@ -470,6 +474,11 @@ function showVerificationMessage(email) {
 // ==========================================
 function renderRoomsScreen(user, userData) {
   lastRenderedScreen = "rooms";
+
+  // حفظ البيانات العالمية للاستدعاء من HTML
+  window._currentUser = user;
+  window._currentUserData = userData;
+
   const isOwner = userData.role === "owner";
   const roleInfo = getRoleInfo(userData.role);
 
@@ -477,7 +486,7 @@ function renderRoomsScreen(user, userData) {
     <div class="screen rooms-screen">
       <header class="rooms-header">
         <div class="rooms-top">
-          <button class="top-icon-btn" id="menuBtn" title="القائمة">☰</button>
+          <button class="top-icon-btn" id="menuBtn" title="القائمة" onclick="window._openMenu && window._openMenu()">☰</button>
           <span class="rooms-title">ARABI chat</span>
           <button class="top-icon-btn" id="logoutBtn" title="خروج">⎋</button>
         </div>
@@ -539,12 +548,8 @@ function renderRoomsScreen(user, userData) {
     </div>
   `;
 
-  const menuBtnEl = document.getElementById("menuBtn");
-  if (menuBtnEl) {
-    menuBtnEl.addEventListener("click", () => {
-      openSideMenu(user, userData);
-    });
-  }
+  // تعيين الدالة العامة للقائمة
+  window._openMenu = () => openSideMenu(user, userData);
 
   const logoutBtnEl = document.getElementById("logoutBtn");
   if (logoutBtnEl) {
@@ -1122,10 +1127,15 @@ function openAddRoomModal() {
 // ==========================================
 function renderChatScreen(user, userData, roomId = "jordan") {
   lastRenderedScreen = "chat";
+
+  // حفظ البيانات العالمية للاستدعاء من HTML
+  window._currentUser = user;
+  window._currentUserData = userData;
+
   appDiv.innerHTML = `
     <div class="screen chat-room-screen">
-      <header class="room-top-bar">
-        <button class="top-icon-btn" id="chatMenuBtn">☰</button>
+      <header class="room-top-bar" style="position:relative;">
+        <button class="top-icon-btn" id="chatMenuBtn" onclick="window._openMenu && window._openMenu()" style="position:relative; z-index:9999; cursor:pointer;">☰</button>
         <span class="room-top-title" id="roomTitle">جاري التحميل...</span>
         <div class="room-top-actions">
           <button class="top-icon-btn" title="الكبار">👑</button>
@@ -1167,6 +1177,9 @@ function renderChatScreen(user, userData, roomId = "jordan") {
     </div>
   `;
 
+  // تعيين الدالة العامة للقائمة
+  window._openMenu = () => openSideMenu(user, userData);
+
   const backBtnEl = document.getElementById("backBtn");
   if (backBtnEl) {
     backBtnEl.addEventListener("click", () => {
@@ -1174,9 +1187,12 @@ function renderChatScreen(user, userData, roomId = "jordan") {
     });
   }
 
+  // ربط إضافي كاحتياط
   const chatMenuBtnEl = document.getElementById("chatMenuBtn");
   if (chatMenuBtnEl) {
-    chatMenuBtnEl.addEventListener("click", () => {
+    chatMenuBtnEl.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       openSideMenu(user, userData);
     });
   }
