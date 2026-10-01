@@ -1002,4 +1002,74 @@ function openEditProfile(user, userData) {
       document.getElementById("editProfileModal").remove();
     } catch (error) {
       console.error(error);
-      alert("فشل الحفظ: " + error
+      alert("فشل الحفظ: " + error.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "💾 حفظ التعديلات";
+    }
+  };
+}
+
+// ==========================================
+// رفع الصورة إلى Cloudinary
+// ==========================================
+async function uploadToCloudinary(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    console.error("Cloudinary error:", err);
+    throw new Error("فشل رفع الصورة");
+  }
+
+  const data = await response.json();
+  return data.secure_url;
+}
+
+// ==========================================
+// تنسيق الوقت
+// ==========================================
+function formatTime(timestamp) {
+  if (!timestamp) return "";
+  const date = new Date(timestamp);
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
+// ==========================================
+// حماية النص
+// ==========================================
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// ==========================================
+// مراقبة حالة المستخدم
+// ==========================================
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    const userRef = ref(db, `users/${user.uid}`);
+    get(userRef).then((snapshot) => {
+      if (snapshot.exists()) {
+        const userData = snapshot.val();
+        renderRoomsScreen(user, userData);
+      } else {
+        renderWelcomeScreen();
+      }
+    });
+  } else {
+    renderWelcomeScreen();
+  }
+});
