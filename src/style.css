@@ -529,6 +529,74 @@ body {
 
 .send-btn:active { transform: scale(0.95); }
 
+/* ===== شاشة الغرف ===== */
+.room-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 16px;
+  padding: 15px 18px;
+  transition: all 0.3s;
+}
+
+.room-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(139, 92, 246, 0.5);
+  transform: translateY(-2px);
+}
+
+.room-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.room-flag {
+  font-size: 26px;
+}
+
+.room-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.room-enter-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  transition: all 0.3s;
+}
+
+.room-enter-btn:active {
+  transform: scale(0.95);
+}
+
+.room-delete-btn {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 @media (max-width: 380px) {
   .hero h1 { font-size: 42px; }
   .btn { padding: 14px 20px; font-size: 15px; }
