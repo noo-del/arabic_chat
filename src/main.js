@@ -41,6 +41,10 @@ const db = getDatabase(app);
 
 const appDiv = document.getElementById("app");
 
+// ===== إعدادات Cloudinary =====
+const CLOUDINARY_CLOUD_NAME = "zzswviqu";
+const CLOUDINARY_UPLOAD_PRESET = "chat_uploads";
+
 // ==========================================
 // نظام الرتب
 // ==========================================
@@ -487,9 +491,9 @@ function renderRoomsScreen(user, userData) {
             <span class="tab-icon">💌</span>
             <span class="tab-label">رسائل</span>
           </button>
-          <button class="tab-btn">
-            <span class="tab-icon">⚙️</span>
-            <span class="tab-label">إعدادات</span>
+          <button class="tab-btn" id="myProfileBtn">
+            <span class="tab-icon">👤</span>
+            <span class="tab-label">ملفي</span>
           </button>
         </div>
       </header>
@@ -515,9 +519,9 @@ function renderRoomsScreen(user, userData) {
           <span class="bottom-icon">👥</span>
           <span class="bottom-label">المتصلين</span>
         </button>
-        <button class="bottom-btn">
-          <span class="bottom-icon">⚙️</span>
-          <span class="bottom-label">خيارات</span>
+        <button class="bottom-btn" id="bottomProfileBtn">
+          <span class="bottom-icon">👤</span>
+          <span class="bottom-label">ملفي</span>
         </button>
       </div>
 
@@ -528,6 +532,11 @@ function renderRoomsScreen(user, userData) {
   `;
 
   document.getElementById("logoutBtn").onclick = () => signOut(auth);
+
+  document.getElementById("myProfileBtn").onclick = () =>
+    showProfile(user.uid, user, userData);
+  document.getElementById("bottomProfileBtn").onclick = () =>
+    showProfile(user.uid, user, userData);
 
   const roomsRef = ref(db, "rooms");
   onValue(roomsRef, (snapshot) => {
@@ -682,9 +691,9 @@ function renderChatScreen(user, userData, roomId = "jordan") {
           <span class="nav-icon">👥</span>
           <span class="nav-text">المتصلين</span>
         </button>
-        <button class="nav-item">
-          <span class="nav-icon">⚙️</span>
-          <span class="nav-text">خيارات</span>
+        <button class="nav-item" id="myProfileRoomBtn">
+          <span class="nav-icon">👤</span>
+          <span class="nav-text">ملفي</span>
         </button>
       </div>
     </div>
@@ -692,6 +701,9 @@ function renderChatScreen(user, userData, roomId = "jordan") {
 
   document.getElementById("backBtn").onclick = () =>
     renderRoomsScreen(user, userData);
+
+  document.getElementById("myProfileRoomBtn").onclick = () =>
+    showProfile(user.uid, user, userData);
 
   get(ref(db, `rooms/${roomId}`)).then((snap) => {
     if (snap.exists()) {
@@ -738,19 +750,27 @@ function startChat(user, userData, roomId = "jordan") {
       const msgEl = document.createElement("div");
       msgEl.className = "chat-msg";
       msgEl.innerHTML = `
-        <div class="chat-avatar" style="background:${msg.senderColor || '#a5b4fc'}20;border:2px solid ${msg.senderColor || '#a5b4fc'};">
+        <div class="chat-avatar" style="background:${msg.senderColor || '#a5b4fc'}20;border:2px solid ${msg.senderColor || '#a5b4fc'};cursor:pointer;" data-user-id="${msg.senderId}">
           ${(msg.senderName || "?")[0]}
         </div>
         <div class="chat-msg-body">
           <div class="chat-msg-header">
             <span class="chat-role" style="color:${roleInfo.color}">${roleInfo.label}</span>
-            <span class="chat-name" style="color:${msg.senderColor || '#a5b4fc'}">${escapeHtml(msg.senderName)}</span>
+            <span class="chat-name" style="color:${msg.senderColor || '#a5b4fc'};cursor:pointer;" data-user-id="${msg.senderId}">${escapeHtml(msg.senderName)}</span>
             <span class="chat-time">${formatTime(msg.createdAt)}</span>
           </div>
           <div class="chat-text">${escapeHtml(msg.text)}</div>
         </div>
       `;
       messagesDiv.appendChild(msgEl);
+    });
+
+    // اجعل الأفاتار والاسم قابلين للنقر
+    document.querySelectorAll("[data-user-id]").forEach((el) => {
+      el.onclick = () => {
+        const targetId = el.dataset.userId;
+        showProfile(targetId, user, userData);
+      };
     });
 
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -781,40 +801,205 @@ function startChat(user, userData, roomId = "jordan") {
 }
 
 // ==========================================
-// تنسيق الوقت
+// عرض الملف الشخصي
 // ==========================================
-function formatTime(timestamp) {
-  if (!timestamp) return "";
-  const date = new Date(timestamp);
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  return `${hours}:${minutes}`;
+function showProfile(userId, currentUser, currentUserData) {
+  const userRef = ref(db, `users/${userId}`);
+  get(userRef).then((snapshot) => {
+    if (!snapshot.exists()) {
+      alert("المستخدم غير موجود");
+      return;
+    }
+
+    const profile = snapshot.val();
+    const isMyProfile = userId === currentUser.uid;
+    const roleInfo = getRoleInfo(profile.role);
+
+    const avatar = profile.avatar && profile.avatar !== "none"
+      ? profile.avatar
+      : null;
+
+    const cover = profile.cover && profile.cover !== "none"
+      ? profile.cover
+      : null;
+
+    const joinDate = profile.createdAt
+      ? new Date(profile.createdAt).toLocaleDateString("ar-EG")
+      : "غير معروف";
+
+    const modal = document.createElement("div");
+    modal.className = "modal-overlay";
+    modal.id = "profileModal";
+    modal.innerHTML = `
+      <div class="profile-view">
+        <button class="modal-close" id="closeProfile">✕</button>
+
+        <div class="profile-cover" style="${cover ? `background-image:url('${cover}');` : ''}"></div>
+
+        <div class="profile-avatar-container">
+          <div class="profile-avatar" style="border-color:${roleInfo.color}">
+            ${avatar
+              ? `<img src="${avatar}" alt="avatar" />`
+              : `<span>${(profile.username || "?")[0]}</span>`}
+          </div>
+        </div>
+
+        <div class="profile-info">
+          <div class="profile-role" style="color:${roleInfo.color}">
+            ${roleInfo.label}
+          </div>
+          <h2 class="profile-username" style="color:${profile.color || '#a5b4fc'}">
+            ${escapeHtml(profile.username || "مجهول")}
+          </h2>
+
+          ${profile.bio ? `
+            <div class="profile-bio">${escapeHtml(profile.bio)}</div>
+          ` : ''}
+
+          <div class="profile-meta">
+            <div class="meta-item">
+              <span class="meta-label">الجنس:</span>
+              <span class="meta-value">${profile.gender === "female" ? "أنثى" : "ذكر"}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">العمر:</span>
+              <span class="meta-value">${profile.age || "غير محدد"}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">تاريخ الانضمام:</span>
+              <span class="meta-value">${joinDate}</span>
+            </div>
+          </div>
+
+          ${isMyProfile ? `
+            <button class="btn-action" id="editProfileBtn">
+              ✏️ تعديل الملف
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    document.getElementById("closeProfile").onclick = () => modal.remove();
+
+    if (isMyProfile) {
+      document.getElementById("editProfileBtn").onclick = () => {
+        modal.remove();
+        openEditProfile(currentUser, currentUserData);
+      };
+    }
+  });
 }
 
 // ==========================================
-// حماية النص
+// نافذة تعديل الملف الشخصي
 // ==========================================
-function escapeHtml(text) {
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
-}
+function openEditProfile(user, userData) {
+  const role = userData.role || "member";
+  const canEditExtra = ["owner", "super_admin", "admin", "premium"].includes(role);
 
-// ==========================================
-// مراقبة حالة المستخدم
-// ==========================================
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    const userRef = ref(db, `users/${user.uid}`);
-    get(userRef).then((snapshot) => {
-      if (snapshot.exists()) {
-        const userData = snapshot.val();
-        renderRoomsScreen(user, userData);
-      } else {
-        renderWelcomeScreen();
+  const avatar = userData.avatar && userData.avatar !== "none" ? userData.avatar : "";
+
+  const modal = document.createElement("div");
+  modal.className = "modal-overlay";
+  modal.id = "editProfileModal";
+  modal.innerHTML = `
+    <div class="modal">
+      <button class="modal-close" id="closeEdit">✕</button>
+      <h2>✏️ تعديل الملف</h2>
+
+      <div class="field">
+        <label>صورة الملف الشخصي</label>
+        <input type="file" id="avatarFile" accept="image/*" class="file-input" />
+        <div id="avatarPreview" style="margin-top:10px;text-align:center;">
+          ${avatar ? `<img src="${avatar}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;" />` : ""}
+        </div>
+      </div>
+
+      <div class="field">
+        <label>الاسم</label>
+        <input type="text" id="editUsername" value="${escapeHtml(userData.username || '')}" maxlength="20" />
+      </div>
+
+      <div class="field">
+        <label>نبذة عنك</label>
+        <input type="text" id="editBio" value="${escapeHtml(userData.bio || '')}" maxlength="60" placeholder="اكتب شيئًا عنك..." />
+      </div>
+
+      ${canEditExtra ? `
+        <div class="field">
+          <label>لون الاسم</label>
+          <input type="color" id="editColor" value="${userData.color || '#a5b4fc'}" class="color-input" />
+        </div>
+
+        <div class="field">
+          <label>رابط الأغنية (MP3)</label>
+          <input type="url" id="editSong" value="${userData.song !== 'none' ? (userData.song || '') : ''}" placeholder="https://..." />
+        </div>
+      ` : ''}
+
+      <button class="btn-action" id="saveProfileBtn">💾 حفظ التعديلات</button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  document.getElementById("closeEdit").onclick = () => modal.remove();
+
+  document.getElementById("avatarFile").onchange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        document.getElementById("avatarPreview").innerHTML =
+          `<img src="${ev.target.result}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;" />`;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  document.getElementById("saveProfileBtn").onclick = async () => {
+    const btn = document.getElementById("saveProfileBtn");
+    btn.disabled = true;
+    btn.textContent = "جاري الحفظ...";
+
+    try {
+      const newUsername = document.getElementById("editUsername").value.trim();
+      const newBio = document.getElementById("editBio").value.trim();
+      const avatarFile = document.getElementById("avatarFile").files[0];
+
+      if (!newUsername) {
+        alert("اكتب اسمك");
+        btn.disabled = false;
+        btn.textContent = "💾 حفظ التعديلات";
+        return;
       }
-    });
-  } else {
-    renderWelcomeScreen();
-  }
-});
+
+      const updates = {
+        username: newUsername,
+        bio: newBio,
+      };
+
+      if (avatarFile) {
+        const avatarUrl = await uploadToCloudinary(avatarFile);
+        if (avatarUrl) updates.avatar = avatarUrl;
+      }
+
+      if (canEditExtra) {
+        const newColor = document.getElementById("editColor").value;
+        const newSong = document.getElementById("editSong").value.trim();
+        updates.color = newColor;
+        if (newSong) updates.song = newSong;
+      }
+
+      await set(ref(db, `users/${user.uid}`), {
+        ...userData,
+        ...updates,
+      });
+
+      alert("✅ تم حفظ التعديلات");
+      document.getElementById("editProfileModal").remove();
+    } catch (error) {
+      console.error(error);
