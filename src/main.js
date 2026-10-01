@@ -842,6 +842,10 @@ function showProfile(userId, currentUser, currentUserData) {
         })
       : "غير معروف";
 
+    // حذف النافذة القديمة إن وُجدت
+    const oldModal = document.getElementById("profileModal");
+    if (oldModal) oldModal.remove();
+
     const modal = document.createElement("div");
     modal.className = "modal-overlay";
     modal.id = "profileModal";
@@ -869,12 +873,6 @@ function showProfile(userId, currentUser, currentUserData) {
 
           ${profile.bio ? `
             <div class="profile-bio">${escapeHtml(profile.bio)}</div>
-          ` : ''}
-
-          ${profile.song && profile.song !== "none" && profile.song.startsWith("http") ? `
-            <button class="btn-action" id="toggleSongBtn" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);">
-              🎵 تشغيل / إيقاف الأغنية
-            </button>
           ` : ''}
 
           <div class="profile-meta">
@@ -927,19 +925,6 @@ function showProfile(userId, currentUser, currentUserData) {
       }
       modal.remove();
     };
-
-    const songBtn = document.getElementById("toggleSongBtn");
-    if (songBtn) {
-      songBtn.onclick = () => {
-        if (window._profileAudio) {
-          if (window._profileAudio.paused) {
-            window._profileAudio.play();
-          } else {
-            window._profileAudio.pause();
-          }
-        }
-      };
-    }
 
     if (isMyProfile) {
       document.getElementById("editProfileBtn").onclick = () => {
@@ -1221,7 +1206,6 @@ onAuthStateChanged(auth, (user) => {
     onValue(userRef, (snapshot) => {
       if (snapshot.exists()) {
         const userData = snapshot.val();
-        // حدّث الشاشة الحالية فقط إذا لم تكن هناك نافذة مفتوحة
         if (!document.getElementById("editProfileModal") && !document.getElementById("profileModal")) {
           renderRoomsScreen(user, userData);
         }
