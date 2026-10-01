@@ -245,6 +245,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 10;
 }
 
 .modal h2 {
@@ -333,6 +334,7 @@ body {
 }
 
 .btn-action:active { transform: scale(0.97); }
+.btn-action:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .btn-action.secondary {
   background: linear-gradient(135deg, #10b981, #059669);
@@ -506,9 +508,7 @@ body {
   gap: 12px;
 }
 
-.room-flag-big {
-  font-size: 32px;
-}
+.room-flag-big { font-size: 32px; }
 
 .room-details {
   display: flex;
@@ -627,9 +627,7 @@ body {
   transition: all 0.3s;
 }
 
-.bottom-btn.active {
-  color: #06b6d4;
-}
+.bottom-btn.active { color: #06b6d4; }
 
 .bottom-icon { font-size: 20px; }
 .bottom-label { font-size: 11px; font-weight: 700; }
@@ -667,10 +665,7 @@ body {
   text-align: center;
 }
 
-.room-top-actions {
-  display: flex;
-  gap: 2px;
-}
+.room-top-actions { display: flex; gap: 2px; }
 
 .room-messages {
   flex: 1;
@@ -810,9 +805,7 @@ body {
   outline: none;
 }
 
-.input-wrapper input::placeholder {
-  color: rgba(255, 255, 255, 0.35);
-}
+.input-wrapper input::placeholder { color: rgba(255, 255, 255, 0.35); }
 
 .emoji-btn {
   background: transparent;
@@ -874,6 +867,166 @@ body {
 .nav-icon { font-size: 18px; }
 .nav-text { font-size: 10px; font-weight: 700; }
 
+/* ==========================================
+   شاشة الملف الشخصي
+   ========================================== */
+.profile-view {
+  background: linear-gradient(180deg, #0f172a, #0a0e27);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 24px;
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.profile-cover {
+  height: 130px;
+  background: linear-gradient(135deg, #06b6d4, #3b82f6, #8b5cf6);
+  background-size: cover;
+  background-position: center;
+  border-radius: 24px 24px 0 0;
+  position: relative;
+}
+
+.profile-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, rgba(15, 23, 42, 0.9) 100%);
+  border-radius: 24px 24px 0 0;
+}
+
+.profile-avatar-container {
+  margin-top: -55px;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+}
+
+.profile-avatar {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  border: 4px solid #fbbf24;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 42px;
+  font-weight: 900;
+  color: #fff;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.profile-info {
+  padding: 15px 25px 25px;
+  text-align: center;
+}
+
+.profile-role {
+  font-size: 13px;
+  font-weight: 900;
+  padding: 5px 15px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  display: inline-block;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.profile-username {
+  font-size: 24px;
+  font-weight: 900;
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+
+.profile-bio {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 12px 15px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  margin-bottom: 18px;
+}
+
+.profile-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.meta-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.meta-label {
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+}
+
+.meta-value {
+  color: #fff;
+  font-weight: 700;
+}
+
+/* ===== حقل رفع الملف ===== */
+.file-input {
+  width: 100%;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px dashed rgba(139, 92, 246, 0.4);
+  border-radius: 14px;
+  color: #fff;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.file-input::file-selector-button {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: #fff;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.color-input {
+  width: 100%;
+  height: 50px;
+  padding: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  cursor: pointer;
+}
+
 /* ===== للشاشات الصغيرة ===== */
 @media (max-width: 380px) {
   .hero h1 { font-size: 42px; }
@@ -881,4 +1034,6 @@ body {
   .modal { padding: 25px 20px; }
   .room-title-name { font-size: 14px; }
   .chat-avatar { width: 36px; height: 36px; font-size: 15px; }
-                              }
+  .profile-avatar { width: 90px; height: 90px; font-size: 36px; }
+  .profile-username { font-size: 20px; }
+     }
