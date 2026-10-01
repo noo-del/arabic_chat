@@ -765,7 +765,6 @@ function startChat(user, userData, roomId = "jordan") {
       messagesDiv.appendChild(msgEl);
     });
 
-    // اجعل الأفاتار والاسم قابلين للنقر
     document.querySelectorAll("[data-user-id]").forEach((el) => {
       el.onclick = () => {
         const targetId = el.dataset.userId;
@@ -1003,3 +1002,4 @@ function openEditProfile(user, userData) {
       document.getElementById("editProfileModal").remove();
     } catch (error) {
       console.error(error);
+      alert("فشل الحفظ: " + error
