@@ -455,13 +455,153 @@ function showVerificationMessage(email) {
 }
 
 // ==========================================
-// شاشة الدردشة
+// شاشة قائمة الغرف
 // ==========================================
-function renderChatScreen(user) {
+function renderRoomsScreen(user, userData) {
+  const isOwner = userData.role === "owner";
+  const roleInfo = getRoleInfo(userData.role);
+
   appDiv.innerHTML = `
     <div class="screen chat-screen">
       <header class="chat-header">
-        <h2>غرفة الأردن 🇯🇴</h2>
+        <h2>الغرف</h2>
+        <button id="logoutBtn" class="logout-btn">خروج</button>
+      </header>
+
+      <div id="rooms-list" class="messages-container">
+        <p class="empty-msg">جاري التحميل...</p>
+      </div>
+
+      ${isOwner ? `
+        <button id="addRoomBtn" class="send-btn" style="position:fixed;bottom:80px;left:20px;width:60px;height:60px;font-size:28px;z-index:10;">+</button>
+      ` : ''}
+
+      <div class="message-form" style="justify-content:center;">
+        <span style="color:${roleInfo.color};font-weight:700;">
+          ${roleInfo.label} ${userData.username}
+        </span>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("logoutBtn").onclick = () => signOut(auth);
+
+  const roomsRef = ref(db, "rooms");
+  onValue(roomsRef, (snapshot) => {
+    const roomsList = document.getElementById("rooms-list");
+    roomsList.innerHTML = "";
+
+    const data = snapshot.val();
+    if (!data) {
+      roomsList.innerHTML = '<p class="empty-msg">لا توجد غرف. أضف غرفة جديدة!</p>';
+      return;
+    }
+
+    Object.entries(data).forEach(([roomId, room]) => {
+      const roomEl = document.createElement("div");
+      roomEl.className = "room-card";
+      roomEl.innerHTML = `
+        <div class="room-info">
+          <span class="room-flag">${room.flag || "💬"}</span>
+          <span class="room-name">${escapeHtml(room.name || roomId)}</span>
+        </div>
+        <button class="room-enter-btn" data-room="${roomId}">دخول</button>
+        ${isOwner ? `<button class="room-delete-btn" data-room="${roomId}">🗑️</button>` : ''}
+      `;
+      roomsList.appendChild(roomEl);
+    });
+
+    document.querySelectorAll(".room-enter-btn").forEach((btn) => {
+      btn.onclick = () => {
+        const roomId = btn.dataset.room;
+        renderChatScreen(user, userData, roomId);
+      };
+    });
+
+    document.querySelectorAll(".room-delete-btn").forEach((btn) => {
+      btn.onclick = async () => {
+        const roomId = btn.dataset.room;
+        if (confirm("حذف الغرفة؟")) {
+          await set(ref(db, `rooms/${roomId}`), null);
+        }
+      };
+    });
+  });
+
+  if (isOwner) {
+    document.getElementById("addRoomBtn").onclick = () => {
+      openAddRoomModal();
+    };
+  }
+}
+
+// ==========================================
+// نافذة إضافة غرفة (لصاحب الموقع)
+// ==========================================
+function openAddRoomModal() {
+  const modal = document.createElement("div");
+  modal.className = "modal-overlay";
+  modal.id = "addRoomModal";
+  modal.innerHTML = `
+    <div class="modal">
+      <button class="modal-close" id="closeAddRoom">✕</button>
+      <h2>إضافة غرفة جديدة</h2>
+
+      <div class="field">
+        <label>اسم الغرفة</label>
+        <input type="text" id="roomName" placeholder="مثال: غرفة الاردن" />
+      </div>
+
+      <div class="field">
+        <label>رمز الغرفة (بالإنجليزي)</label>
+        <input type="text" id="roomId" placeholder="مثال: jordan" />
+      </div>
+
+      <div class="field">
+        <label>رمز الدولة (emoji)</label>
+        <input type="text" id="roomFlag" placeholder="🇯🇴" />
+      </div>
+
+      <button class="btn-action" id="createRoomBtn">✨ إنشاء الغرفة</button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  document.getElementById("closeAddRoom").onclick = () => modal.remove();
+
+  document.getElementById("createRoomBtn").onclick = async () => {
+    const name = document.getElementById("roomName").value.trim();
+    const id = document.getElementById("roomId").value.trim().toLowerCase();
+    const flag = document.getElementById("roomFlag").value.trim();
+
+    if (!name || !id) {
+      alert("املأ الحقول المطلوبة");
+      return;
+    }
+
+    try {
+      await set(ref(db, `rooms/${id}`), {
+        name: name,
+        flag: flag || "💬",
+        createdAt: Date.now(),
+      });
+      modal.remove();
+    } catch (error) {
+      alert("فشل الإنشاء: " + error.message);
+    }
+  };
+}
+
+// ==========================================
+// شاشة الدردشة
+// ==========================================
+function renderChatScreen(user, userData, roomId = "jordan") {
+  appDiv.innerHTML = `
+    <div class="screen chat-screen">
+      <header class="chat-header">
+        <button id="backBtn" class="logout-btn">← رجوع</button>
+        <h2 id="roomTitle">جاري التحميل...</h2>
         <button id="logoutBtn" class="logout-btn">خروج</button>
       </header>
 
@@ -476,27 +616,32 @@ function renderChatScreen(user) {
     </div>
   `;
 
-  document.getElementById("logoutBtn").onclick = () => {
-    signOut(auth);
-  };
+  document.getElementById("logoutBtn").onclick = () => signOut(auth);
+  document.getElementById("backBtn").onclick = () =>
+    renderRoomsScreen(user, userData);
 
-  const userRef = ref(db, `users/${user.uid}`);
-  get(userRef).then((snapshot) => {
-    if (snapshot.exists()) {
-      startChat(user, snapshot.val());
+  get(ref(db, `rooms/${roomId}`)).then((snap) => {
+    if (snap.exists()) {
+      const room = snap.val();
+      document.getElementById("roomTitle").textContent =
+        `${room.flag || "💬"} ${room.name}`;
+    } else {
+      document.getElementById("roomTitle").textContent = roomId;
     }
   });
+
+  startChat(user, userData, roomId);
 }
 
 // ==========================================
 // بدء الدردشة الفعلية
 // ==========================================
-function startChat(user, userData) {
+function startChat(user, userData, roomId = "jordan") {
   const messagesDiv = document.getElementById("messages");
   const form = document.getElementById("messageForm");
   const input = document.getElementById("messageInput");
 
-  const messagesRef = ref(db, "rooms/jordan/messages");
+  const messagesRef = ref(db, `rooms/${roomId}/messages`);
 
   onValue(messagesRef, (snapshot) => {
     messagesDiv.innerHTML = "";
@@ -568,8 +713,15 @@ function escapeHtml(text) {
 // ==========================================
 onAuthStateChanged(auth, (user) => {
   if (user) {
-    console.log("المستخدم:", user.uid, "ضيف:", user.isAnonymous);
-    renderChatScreen(user);
+    const userRef = ref(db, `users/${user.uid}`);
+    get(userRef).then((snapshot) => {
+      if (snapshot.exists()) {
+        const userData = snapshot.val();
+        renderRoomsScreen(user, userData);
+      } else {
+        renderWelcomeScreen();
+      }
+    });
   } else {
     renderWelcomeScreen();
   }
