@@ -1631,7 +1631,6 @@ onAuthStateChanged(auth, (user) => {
     onValue(userRef, (snapshot) => {
       if (snapshot.exists()) {
         currentUserData = snapshot.val();
-        // ⚠️ لا تعيد بناء الشاشة إذا كنا في وسط عملية
         if (lastRenderedScreen === "admin" || lastRenderedScreen === "chat") return;
 
         if (!document.getElementById("editProfileModal") && !document.getElementById("profileModal") && !document.getElementById("sideMenuOverlay")) {
